@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -196,7 +197,11 @@ private fun TypeChip(label: String, selected: Boolean, onClick: () -> Unit) {
                 if (selected) Color.White.copy(alpha = 0.18f) else Color.Transparent,
                 RoundedCornerShape(18.dp)
             )
-            .clickable(onClick = onClick)
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick
+            )
             .padding(horizontal = 10.dp, vertical = 5.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -218,7 +223,10 @@ internal fun BotSelector(selectedBot: BotConfig, onBotChange: (BotConfig) -> Uni
         Box(
             modifier = Modifier
                 .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                .clickable { expanded = !expanded }
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) { expanded = !expanded }
                 .padding(horizontal = 10.dp, vertical = 5.dp)
         ) {
             Text(
@@ -240,7 +248,10 @@ internal fun BotSelector(selectedBot: BotConfig, onBotChange: (BotConfig) -> Uni
                         color = if (bot == selectedBot) Color.White else Color.White.copy(alpha = 0.6f),
                         fontSize = 9.sp,
                         modifier = Modifier
-                            .clickable { onBotChange(bot); expanded = false }
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) { onBotChange(bot); expanded = false }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
@@ -262,7 +273,11 @@ private fun ModeChip(label: String, selected: Boolean, onClick: () -> Unit) {
                 Color.White.copy(alpha = if (selected) 0.5f else 0.2f),
                 RoundedCornerShape(16.dp)
             )
-            .clickable(onClick = onClick)
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick
+            )
             .padding(horizontal = 16.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
