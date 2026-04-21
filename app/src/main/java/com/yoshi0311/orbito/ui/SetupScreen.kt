@@ -303,7 +303,8 @@ internal fun BatchCountSelector(count: Int, onCountChange: (Int) -> Unit) {
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            modifier = Modifier.width(36.dp)
+            maxLines = 1,
+            modifier = Modifier.width(52.dp)
         )
         TextButton(
             onClick = { onCountChange(inc(count)) },

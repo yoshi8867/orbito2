@@ -78,6 +78,7 @@ fun BoardGrid(
                 targetValue = 1f,
                 animationSpec = tween(durationMillis = 320, easing = FastOutSlowInEasing)
             )
+            progress.snapTo(0f)
             onRotationComplete()
         }
     }
@@ -90,6 +91,8 @@ fun BoardGrid(
                 targetValue = 1f,
                 animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing)
             )
+        } else {
+            pieceMoveProgress.snapTo(0f)
         }
     }
 

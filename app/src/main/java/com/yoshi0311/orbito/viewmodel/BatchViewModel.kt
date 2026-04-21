@@ -46,7 +46,8 @@ class BatchViewModel(initialConfig: GameConfig) : ViewModel() {
         batchJob = viewModelScope.launch {
             _state.value = _state.value.copy(isRunning = true)
             repeat(total) { i ->
-                val result = simulateGame(config)
+                val firstPlayer = if (i % 2 == 0) Player.BLACK else Player.WHITE
+                val result = simulateGame(config, firstPlayer)
                 _state.value = _state.value.let { s ->
                     s.copy(
                         currentGame = i + 1,
@@ -61,16 +62,18 @@ class BatchViewModel(initialConfig: GameConfig) : ViewModel() {
         }
     }
 
-    private suspend fun simulateGame(config: GameConfig): SimResult {
+    private suspend fun simulateGame(config: GameConfig, firstPlayer: Player = Player.BLACK): SimResult {
         var board: List<List<CellState>> = List(4) { List(4) { CellState.EMPTY } }
         var whiteSide = 8
         var blackSide = 8
-        var currentPlayer = Player.BLACK
+        var currentPlayer = firstPlayer
 
         repeat(200) {
             val stateStr = encodeState(board, whiteSide, blackSide, currentPlayer)
+            val botId = config.botFor(currentPlayer)?.id ?: ""
+            val funcName = if (botId == "smart_bot") "smart_move" else "move"
             val rawResponse = withContext(Dispatchers.IO) {
-                try { Python.getInstance().getModule("script").callAttr("move", stateStr).toString() }
+                try { Python.getInstance().getModule("script").callAttr(funcName, stateStr).toString() }
                 catch (e: Exception) { null }
             }
             val move = rawResponse?.let { parseBotResponse(it) } ?: randomMove(board)

@@ -6,7 +6,10 @@ enum class BotVsBotMode { STEP, BATCH }
 
 data class BotConfig(val id: String, val name: String)
 
-val AVAILABLE_BOTS = listOf(BotConfig(id = "test_bot", name = "TEST BOT"))
+val AVAILABLE_BOTS = listOf(
+    BotConfig(id = "random_bot", name = "RANDOM"),
+    BotConfig(id = "smart_bot",  name = "SMART")
+)
 
 data class GameConfig(
     val whiteType: PlayerType = PlayerType.HUMAN,

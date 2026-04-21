@@ -132,9 +132,10 @@ class GameViewModel(
             val didTimeout = withTimeoutOrNull(2000L) {
                 withContext(Dispatchers.IO) {
                     try {
+                        val funcName = if (botConfig.id == "smart_bot") "smart_move" else "move"
                         rawResponse = Python.getInstance()
                             .getModule("script")
-                            .callAttr("move", stateStr)
+                            .callAttr(funcName, stateStr)
                             .toString()
                     } catch (e: Exception) {
                         pythonException = e.message ?: "unknown"
