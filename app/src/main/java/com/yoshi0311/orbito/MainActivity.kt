@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,20 +52,18 @@ class MainActivity : ComponentActivity() {
                         onBack = { screen = "start" },
                         modifier = Modifier.fillMaxSize()
                     )
-                    "batch" -> key(gameKey) {
-                        BatchScreen(
-                            config = pendingConfig,
-                            onBack = { screen = "setup" },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                    else -> key(gameKey) {
-                        GameScreen(
-                            config = pendingConfig,
-                            onBack = { screen = "setup" },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+                    "batch" -> BatchScreen(
+                        config = pendingConfig,
+                        sessionKey = gameKey,
+                        onBack = { screen = "setup" },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    else -> GameScreen(
+                        config = pendingConfig,
+                        sessionKey = gameKey,
+                        onBack = { screen = "setup" },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
         }

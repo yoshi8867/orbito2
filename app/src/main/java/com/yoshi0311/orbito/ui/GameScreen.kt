@@ -56,9 +56,10 @@ import com.yoshi0311.orbito.viewmodel.GameViewModel
 @Composable
 fun GameScreen(
     config: GameConfig = GameConfig(),
+    sessionKey: Int = 0,
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
-    viewModel: GameViewModel = viewModel(factory = GameViewModel.factory(config))
+    viewModel: GameViewModel = viewModel(key = "game_$sessionKey", factory = GameViewModel.factory(config))
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var logVisible by remember { mutableStateOf(false) }

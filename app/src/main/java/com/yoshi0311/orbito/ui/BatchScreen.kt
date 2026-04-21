@@ -45,9 +45,10 @@ import com.yoshi0311.orbito.viewmodel.BatchViewModel
 @Composable
 fun BatchScreen(
     config: GameConfig,
+    sessionKey: Int = 0,
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
-    viewModel: BatchViewModel = viewModel(factory = BatchViewModel.factory(config))
+    viewModel: BatchViewModel = viewModel(key = "batch_$sessionKey", factory = BatchViewModel.factory(config))
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var whiteBot by remember { mutableStateOf(config.whiteBot ?: AVAILABLE_BOTS.first()) }
