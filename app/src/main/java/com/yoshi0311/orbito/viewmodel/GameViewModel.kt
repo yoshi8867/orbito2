@@ -61,8 +61,22 @@ class GameViewModel(
         botJob?.cancel()
         _pendingBotMove = null
         _pendingBotName = ""
-        _state.value = GameState()
+        val limit = _state.value.timeLimitSeconds
+        _state.value = GameState(timeLimitSeconds = limit)
         if (config.typeFor(Player.BLACK) == PlayerType.HUMAN) startTimer() else triggerBot()
+    }
+
+    fun updateTimeLimit(seconds: Int?) {
+        val s = _state.value
+        _state.value = s.copy(
+            timeLimitSeconds = seconds,
+            timeLeft = seconds ?: 0
+        )
+        if (s.phase != GamePhase.DONE && !s.isRotating &&
+            config.typeFor(s.currentPlayer) == PlayerType.HUMAN
+        ) {
+            startTimer()
+        }
     }
 
     fun onNextPressed() {
@@ -100,10 +114,11 @@ class GameViewModel(
     }
 
     private fun startTimer() {
+        val limitSec = _state.value.timeLimitSeconds ?: return  // null = unlimited
         timerJob?.cancel()
-        _state.value = _state.value.copy(timeLeft = 20)
+        _state.value = _state.value.copy(timeLeft = limitSec)
         timerJob = viewModelScope.launch {
-            for (remaining in 19 downTo 0) {
+            for (remaining in (limitSec - 1) downTo 0) {
                 delay(1000L)
                 val s = _state.value
                 if (s.phase == GamePhase.DONE) return@launch

@@ -7,6 +7,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -63,6 +66,7 @@ fun GameScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var logVisible by remember { mutableStateOf(false) }
+    var settingsOpen by remember { mutableStateOf(false) }
     val isCurrentPlayerBot = config.typeFor(state.currentPlayer) == PlayerType.BOT
 
     Box(modifier = modifier.background(AppBackground)) {
@@ -85,8 +89,13 @@ fun GameScreen(
 
                 Spacer(Modifier.height(20.dp))
 
-                if (!isCurrentPlayerBot || state.phase == GamePhase.DONE) {
-                    TimerBar(timeLeft = state.timeLeft, width = boardWidth)
+                val showTimer = !isCurrentPlayerBot && state.timeLimitSeconds != null
+                if (showTimer) {
+                    TimerBar(
+                        timeLeft = state.timeLeft,
+                        maxTime = state.timeLimitSeconds!!,
+                        width = boardWidth
+                    )
                 } else {
                     Spacer(Modifier.height(3.dp))
                 }
@@ -151,6 +160,24 @@ fun GameScreen(
             }
         }
 
+        TextButton(
+            onClick = { settingsOpen = true },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(end = 4.dp)
+        ) {
+            Text("⚙", color = Color.White.copy(alpha = 0.45f), fontSize = 16.sp)
+        }
+
+        if (settingsOpen) {
+            SettingsModal(
+                timeLimitSeconds = state.timeLimitSeconds,
+                onTimeLimitChange = { viewModel.updateTimeLimit(it) },
+                onDismiss = { settingsOpen = false }
+            )
+        }
+
         if (state.winner != null) {
             WinnerOverlay(
                 winner = state.winner!!,
@@ -210,7 +237,8 @@ private fun TurnIndicator(state: GameState, config: GameConfig) {
             if (state.currentPlayer == Player.WHITE) "WHITE  ·  PLACE YOUR BALL"
             else "BLACK  ·  PLACE YOUR BALL"
     }
-    val timerColor = if (state.timeLeft <= 5) Color(0xFFFF6B6B) else Color.White
+    val urgentThreshold = ((state.timeLimitSeconds ?: 20) * 0.25f).toInt().coerceAtLeast(5)
+    val timerColor = if (state.timeLeft <= urgentThreshold) Color(0xFFFF6B6B) else Color.White
 
     Row(
         modifier = Modifier
@@ -221,7 +249,7 @@ private fun TurnIndicator(state: GameState, config: GameConfig) {
     ) {
         Ball(color = playerColor, size = 10.dp)
         Text(text = label, color = Color.White, fontSize = 11.sp, letterSpacing = 1.5.sp)
-        if (!isBot) {
+        if (!isBot && state.timeLimitSeconds != null) {
             Spacer(Modifier.width(6.dp))
             Text(
                 text = state.timeLeft.toString(),
@@ -262,9 +290,10 @@ private fun NextButton(onClick: () -> Unit, width: Dp) {
 }
 
 @Composable
-private fun TimerBar(timeLeft: Int, width: Dp) {
-    val fraction = (timeLeft / 20f).coerceIn(0f, 1f)
-    val barColor = if (timeLeft <= 5) Color(0xFFFF6B6B) else Color.White.copy(alpha = 0.7f)
+private fun TimerBar(timeLeft: Int, maxTime: Int, width: Dp) {
+    val fraction = if (maxTime > 0) (timeLeft / maxTime.toFloat()).coerceIn(0f, 1f) else 1f
+    val urgentThreshold = (maxTime * 0.25f).toInt().coerceAtLeast(5)
+    val barColor = if (timeLeft <= urgentThreshold) Color(0xFFFF6B6B) else Color.White.copy(alpha = 0.7f)
 
     Box(
         modifier = Modifier
@@ -371,6 +400,89 @@ private fun WinnerOverlay(winner: Player, isTimeout: Boolean, onRestart: () -> U
             )
             TextButton(onClick = onRestart) {
                 Text(text = "PLAY AGAIN", color = Color.White, fontSize = 12.sp, letterSpacing = 2.sp)
+            }
+        }
+    }
+}
+
+private val TIME_OPTIONS: List<Int?> = listOf(15, 20, 30, 45, 60, null)
+
+@Composable
+private fun SettingsModal(
+    timeLimitSeconds: Int?,
+    onTimeLimitChange: (Int?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xF2111118)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .background(Color(0xFF1C1C28), RoundedCornerShape(20.dp))
+                .padding(horizontal = 32.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Text(
+                text = "SETTINGS",
+                color = Color.White.copy(alpha = 0.9f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 3.sp
+            )
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "MOVE TIME",
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 10.sp,
+                    letterSpacing = 2.sp
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TIME_OPTIONS.forEach { option ->
+                        val selected = option == timeLimitSeconds
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    if (selected) Color.White.copy(alpha = 0.2f) else Color.Transparent,
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .border(
+                                    1.dp,
+                                    Color.White.copy(alpha = if (selected) 0.6f else 0.2f),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable(
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() }
+                                ) { onTimeLimitChange(option) }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (option == null) "∞" else "${option}s",
+                                color = if (selected) Color.White else Color.White.copy(alpha = 0.5f),
+                                fontSize = 12.sp,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            }
+
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "CLOSE",
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 11.sp,
+                    letterSpacing = 2.sp
+                )
             }
         }
     }

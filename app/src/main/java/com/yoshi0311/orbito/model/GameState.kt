@@ -20,5 +20,6 @@ data class GameState(
     val rotationVersion: Int = 0,
     val botHighlightCell: Int? = null,
     val botPieceMoveAnim: Pair<Int, Int>? = null,
-    val botMoveReady: Boolean = false
+    val botMoveReady: Boolean = false,
+    val timeLimitSeconds: Int? = 20
 )
