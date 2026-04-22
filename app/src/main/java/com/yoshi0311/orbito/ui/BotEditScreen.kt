@@ -137,6 +137,7 @@ fun BotEditScreen(
                         onSave = viewModel::saveBot,
                         onUndo = viewModel::undoCode,
                         onRedo = viewModel::redoCode,
+                        onDelete = viewModel::showDeleteConfirm,
                         modifier = Modifier.fillMaxHeight().weight(0.58f)
                     )
                 }
@@ -151,6 +152,7 @@ fun BotEditScreen(
                         onSave = viewModel::saveBot,
                         onUndo = viewModel::undoCode,
                         onRedo = viewModel::redoCode,
+                        onDelete = viewModel::showDeleteConfirm,
                         modifier = Modifier.fillMaxWidth().weight(0.5f)
                     )
                     // Bottom: board
@@ -191,19 +193,18 @@ fun BotEditScreen(
             Text("←", color = Color.White.copy(alpha = 0.45f), fontSize = 18.sp)
         }
 
-        // Delete button (top-right) — shown after first save
-        if (state.savedFileName != null) {
-            TextButton(
-                onClick = viewModel::deleteBot,
-                modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(end = 4.dp)
-            ) {
-                Text("🗑", color = Color.White, fontSize = 16.sp)
-            }
-        }
-
         // Info modal
         if (state.showInfoModal) {
             InfoModal(onDismiss = viewModel::dismissInfoModal)
+        }
+
+        // Delete confirm dialog
+        if (state.showDeleteConfirm) {
+            DeleteConfirmDialog(
+                botName = state.savedFileName ?: "",
+                onConfirm = { viewModel.dismissDeleteConfirm(); viewModel.deleteBot() },
+                onDismiss = viewModel::dismissDeleteConfirm
+            )
         }
     }
 }
@@ -259,7 +260,10 @@ private fun BoardSection(
             maxLines = 1
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             BoardActionButton(
                 text = "RUN",
                 enabled = isRunValid,
@@ -352,6 +356,7 @@ private fun EditorPanel(
     onSave: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.background(Color(0xFF1E1E1E))) {
@@ -389,6 +394,9 @@ private fun EditorPanel(
             EditorActionButton("SAVE", onClick = onSave)
             EditorActionButton("UNDO", enabled = state.canUndo, onClick = onUndo)
             EditorActionButton("REDO", enabled = state.canRedo, onClick = onRedo)
+            if (state.savedFileName != null) {
+                EditorActionButton("DEL", onClick = onDelete)
+            }
         }
 
         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
@@ -465,6 +473,40 @@ private fun InfoModal(onDismiss: () -> Unit) {
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text("닫기", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, letterSpacing = 2.sp)
+            }
+        }
+    )
+}
+
+@Composable
+private fun DeleteConfirmDialog(botName: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF1C1C28),
+        titleContentColor = Color.White,
+        textContentColor = Color.White.copy(alpha = 0.8f),
+        title = {
+            Text(
+                text = "봇 삭제",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 2.sp
+            )
+        },
+        text = {
+            Text(
+                text = "\"$botName\" 봇을 삭제하시겠습니까?",
+                fontSize = 12.sp
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("YES", color = Color(0xFFFF6B6B), fontSize = 11.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("NO", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, letterSpacing = 2.sp)
             }
         }
     )

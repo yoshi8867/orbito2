@@ -37,6 +37,7 @@ data class BotEditUiState(
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
     val showInfoModal: Boolean = false,
+    val showDeleteConfirm: Boolean = false,
     val shouldNavigateBack: Boolean = false
 )
 
@@ -193,6 +194,9 @@ class BotEditViewModel(
 
     fun showInfoModal() { _state.value = _state.value.copy(showInfoModal = true) }
     fun dismissInfoModal() { _state.value = _state.value.copy(showInfoModal = false) }
+
+    fun showDeleteConfirm() { _state.value = _state.value.copy(showDeleteConfirm = true) }
+    fun dismissDeleteConfirm() { _state.value = _state.value.copy(showDeleteConfirm = false) }
 
     // ── Toast ─────────────────────────────────────────────────────────────────
 
