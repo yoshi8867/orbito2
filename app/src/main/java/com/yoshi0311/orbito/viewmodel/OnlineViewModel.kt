@@ -25,7 +25,9 @@ import com.yoshi0311.orbito.network.toModel
 import com.yoshi0311.orbito.network.toPlayer
 import com.yoshi0311.orbito.network.toRole
 import com.yoshi0311.orbito.network.toStr
+import com.yoshi0311.orbito.model.ROTATION_MAPPING
 import android.util.Log
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -274,21 +276,93 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun onRotationComplete() {
+        _state.value = _state.value.copy(isRotating = false, boardBeforeRotation = null)
+    }
+
+    private fun deRotate(b: List<List<CellState>>): List<List<CellState>> {
+        val n = b.map { it.toMutableList() }.toMutableList()
+        for ((src, dst) in ROTATION_MAPPING) n[src.first][src.second] = b[dst.first][dst.second]
+        return n.map { it.toList() }
+    }
+
+    private fun detectOptionalMove(
+        prevBoard: List<List<CellState>>,
+        boardAfterPlace: List<List<CellState>>
+    ): Pair<Int, Int>? {
+        val disappeared = mutableListOf<Int>()
+        val appeared = mutableListOf<Int>()
+        for (r in 0..3) for (c in 0..3) {
+            val prev = prevBoard[r][c]; val curr = boardAfterPlace[r][c]
+            if (prev != CellState.EMPTY && curr == CellState.EMPTY) disappeared.add(r * 4 + c)
+            else if (prev == CellState.EMPTY && curr != CellState.EMPTY) appeared.add(r * 4 + c)
+        }
+        if (disappeared.size != 1 || appeared.size != 2) return null
+        val srcPos = disappeared[0]
+        val movedColor = prevBoard[srcPos / 4][srcPos % 4]
+        val dstPos = appeared.firstOrNull { boardAfterPlace[it / 4][it % 4] == movedColor } ?: return null
+        return Pair(srcPos, dstPos)
+    }
+
     private fun applyGameMsg(msg: NetMsg) {
+        val newBoard = decodeBoard(msg.board ?: "")
         val newGame = OnlineGameState(
-            board = decodeBoard(msg.board ?: ""),
+            board = newBoard,
             currentPlayer = (msg.currentPlayer ?: "white").toPlayer(),
             phase = (msg.phase ?: "optional_move").toGamePhase(),
             whiteSideCount = msg.whiteSideCount ?: 8,
             blackSideCount = msg.blackSideCount ?: 8,
             winner = msg.winner?.toPlayer()
         )
-        _state.value = _state.value.copy(
-            game = newGame,
-            status = OnlineStatus.IN_GAME,
-            selectedCell = null,
-            localPhase = null
-        )
+
+        val prevGame = _state.value.game
+        val prevTotal = prevGame.whiteSideCount + prevGame.blackSideCount
+        val newTotal = newGame.whiteSideCount + newGame.blackSideCount
+        val rotationHappened = newTotal == prevTotal - 1
+
+        if (!rotationHappened) {
+            _state.value = _state.value.copy(
+                game = newGame,
+                status = OnlineStatus.IN_GAME,
+                selectedCell = null,
+                localPhase = null
+            )
+            return
+        }
+
+        val boardBeforeRot = deRotate(newBoard)
+        val optMove = detectOptionalMove(prevGame.board, boardBeforeRot)
+
+        if (optMove != null) {
+            val (src, dst) = optMove
+            _state.value = _state.value.copy(
+                game = prevGame,
+                pieceMoveAnim = Pair(src, dst),
+                selectedCell = null,
+                localPhase = null,
+                status = OnlineStatus.IN_GAME
+            )
+            viewModelScope.launch {
+                delay(420)
+                _state.value = _state.value.copy(
+                    game = newGame,
+                    pieceMoveAnim = null,
+                    isRotating = true,
+                    boardBeforeRotation = boardBeforeRot,
+                    rotationVersion = _state.value.rotationVersion + 1
+                )
+            }
+        } else {
+            _state.value = _state.value.copy(
+                game = newGame,
+                isRotating = true,
+                boardBeforeRotation = boardBeforeRot,
+                rotationVersion = _state.value.rotationVersion + 1,
+                selectedCell = null,
+                localPhase = null,
+                status = OnlineStatus.IN_GAME
+            )
+        }
     }
 
     private fun applyOptMoveLocally(

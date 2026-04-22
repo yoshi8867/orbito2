@@ -73,14 +73,15 @@ fun OnlineGameScreen(
     onCellTap: (Int, Int) -> Unit,
     onSendChat: (String) -> Unit,
     onLeave: () -> Unit,
+    onRotationComplete: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.background(AppBackground)) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             if (maxWidth >= 600.dp) {
-                LandscapeLayout(state, onCellTap, onSendChat)
+                LandscapeLayout(state, onCellTap, onSendChat, onRotationComplete)
             } else {
-                PortraitLayout(state, onCellTap, onSendChat)
+                PortraitLayout(state, onCellTap, onSendChat, onRotationComplete)
             }
         }
 
@@ -108,7 +109,8 @@ fun OnlineGameScreen(
 private fun LandscapeLayout(
     state: OnlineState,
     onCellTap: (Int, Int) -> Unit,
-    onSendChat: (String) -> Unit
+    onSendChat: (String) -> Unit,
+    onRotationComplete: () -> Unit
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val cellSize = minOf(maxWidth * 0.5f, maxHeight * 0.85f) / 4
@@ -125,6 +127,7 @@ private fun LandscapeLayout(
                 state = state,
                 onCellTap = onCellTap,
                 onSendChat = onSendChat,
+                onRotationComplete = onRotationComplete,
                 cellSize = cellSize,
                 ballSize = ballSize,
                 sideBallSize = 24.dp,
@@ -136,7 +139,7 @@ private fun LandscapeLayout(
                 modifier = Modifier
                     .width(280.dp)
                     .fillMaxHeight()
-                    .background(Color(0xFF16161F), RoundedCornerShape(16.dp))
+                    .background(Color(0x38FFFFFF), RoundedCornerShape(16.dp))
                     .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -159,7 +162,8 @@ private fun LandscapeLayout(
 private fun PortraitLayout(
     state: OnlineState,
     onCellTap: (Int, Int) -> Unit,
-    onSendChat: (String) -> Unit
+    onSendChat: (String) -> Unit,
+    onRotationComplete: () -> Unit
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val cellSize = (maxWidth - 120.dp) / 4
@@ -171,6 +175,7 @@ private fun PortraitLayout(
                 state = state,
                 onCellTap = onCellTap,
                 onSendChat = onSendChat,
+                onRotationComplete = onRotationComplete,
                 cellSize = cellSize,
                 ballSize = ballSize,
                 sideBallSize = 18.dp,
@@ -196,7 +201,7 @@ private fun PortraitLayout(
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .height(260.dp)
-                        .background(Color(0xFF16161F), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                        .background(Color(0x38FFFFFF), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                         .padding(12.dp)
                         .imePadding()
                 ) {
@@ -222,6 +227,7 @@ private fun BoardArea(
     state: OnlineState,
     onCellTap: (Int, Int) -> Unit,
     onSendChat: (String) -> Unit,
+    onRotationComplete: () -> Unit,
     cellSize: Dp,
     ballSize: Dp,
     sideBallSize: Dp,
@@ -318,7 +324,7 @@ private fun BoardArea(
                     cellSize = cellSize,
                     ballSize = ballSize,
                     onCellTap = onCellTap,
-                    onRotationComplete = {}
+                    onRotationComplete = onRotationComplete
                 )
                 Spacer(Modifier.width(10.dp))
                 SideBallsPanel(state.game.blackSideCount, BlackBall, sideBallSize, isTablet)

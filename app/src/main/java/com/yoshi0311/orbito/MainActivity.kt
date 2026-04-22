@@ -113,6 +113,7 @@ class MainActivity : ComponentActivity() {
                                     onlineVm.leaveRoom()
                                     screen = "start"
                                 },
+                                onRotationComplete = onlineVm::onRotationComplete,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

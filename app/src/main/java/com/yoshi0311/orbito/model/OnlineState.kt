@@ -48,7 +48,11 @@ data class OnlineState(
     val reconnectSecondsLeft: Int = 0,
     val errorMessage: String = "",
     val selectedCell: Pair<Int, Int>? = null,
-    val localPhase: GamePhase? = null  // overrides game.phase during PLACE input
+    val localPhase: GamePhase? = null,  // overrides game.phase during PLACE input
+    val isRotating: Boolean = false,
+    val boardBeforeRotation: List<List<CellState>>? = null,
+    val rotationVersion: Int = 0,
+    val pieceMoveAnim: Pair<Int, Int>? = null
 ) {
     val effectivePhase: GamePhase get() = localPhase ?: game.phase
 
@@ -60,8 +64,10 @@ data class OnlineState(
         blackSideCount = game.blackSideCount,
         winner = game.winner,
         selectedCell = selectedCell,
-        isRotating = false,
-        boardBeforeRotation = null,
+        isRotating = isRotating,
+        boardBeforeRotation = boardBeforeRotation,
+        rotationVersion = rotationVersion,
+        botPieceMoveAnim = pieceMoveAnim,
         isBotThinking = false,
         timeLimitSeconds = null
     )
