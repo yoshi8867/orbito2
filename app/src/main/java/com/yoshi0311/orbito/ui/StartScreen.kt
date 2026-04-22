@@ -30,6 +30,7 @@ import com.yoshi0311.orbito.ui.theme.WhiteBall
 @Composable
 fun StartScreen(
     onStart: () -> Unit,
+    onOnline: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -75,6 +76,27 @@ fun StartScreen(
                 Text(
                     text = "START",
                     color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 4.sp
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            TextButton(
+                onClick = onOnline,
+                modifier = Modifier
+                    .border(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.25f),
+                        shape = RoundedCornerShape(24.dp)
+                    )
+                    .padding(horizontal = 8.dp)
+            ) {
+                Text(
+                    text = "ONLINE",
+                    color = Color.White.copy(alpha = 0.6f),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 4.sp
