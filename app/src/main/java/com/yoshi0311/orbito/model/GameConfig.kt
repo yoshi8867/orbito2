@@ -4,7 +4,12 @@ enum class PlayerType { HUMAN, BOT }
 
 enum class BotVsBotMode { STEP, BATCH }
 
-data class BotConfig(val id: String, val name: String)
+data class BotConfig(
+    val id: String,
+    val name: String,
+    val isUserBot: Boolean = false,
+    val filePath: String? = null
+)
 
 val AVAILABLE_BOTS = listOf(
     BotConfig(id = "random_bot", name = "RANDOM"),

@@ -256,7 +256,13 @@ class GameServer {
         gameStarted = true
         Log.d(TAG, "Placed $color at ($r,$c). After rotate. W=$whiteSideCount B=$blackSideCount")
 
-        winner = checkWinner(board)
+        val winners = checkWinners(board)
+        winner = when {
+            winners.size == 2 -> if (currentPlayer == Player.WHITE) Player.BLACK else Player.WHITE
+            winners.size == 1 -> winners.first()
+            whiteSideCount == 0 && blackSideCount == 0 -> currentPlayer
+            else -> null
+        }
         if (winner != null) {
             phase = GamePhase.DONE
             Log.d(TAG, "Winner: $winner")
@@ -322,13 +328,14 @@ class GameServer {
         return n.toImmutable()
     }
 
-    private fun checkWinner(b: List<List<CellState>>): Player? {
+    private fun checkWinners(b: List<List<CellState>>): Set<Player> {
         fun CellState.p() = if (this == CellState.WHITE) Player.WHITE else Player.BLACK
-        for (r in 0..3) { val c = b[r][0]; if (c != CellState.EMPTY && b[r].all { it == c }) return c.p() }
-        for (col in 0..3) { val c = b[0][col]; if (c != CellState.EMPTY && (0..3).all { b[it][col] == c }) return c.p() }
-        val d1 = b[0][0]; if (d1 != CellState.EMPTY && (0..3).all { b[it][it] == d1 }) return d1.p()
-        val d2 = b[0][3]; if (d2 != CellState.EMPTY && (0..3).all { b[it][3 - it] == d2 }) return d2.p()
-        return null
+        val winners = mutableSetOf<Player>()
+        for (r in 0..3) { val c = b[r][0]; if (c != CellState.EMPTY && b[r].all { it == c }) winners.add(c.p()) }
+        for (col in 0..3) { val c = b[0][col]; if (c != CellState.EMPTY && (0..3).all { b[it][col] == c }) winners.add(c.p()) }
+        val d1 = b[0][0]; if (d1 != CellState.EMPTY && (0..3).all { b[it][it] == d1 }) winners.add(d1.p())
+        val d2 = b[0][3]; if (d2 != CellState.EMPTY && (0..3).all { b[it][3 - it] == d2 }) winners.add(d2.p())
+        return winners
     }
 
     private fun mutableBoard(b: List<List<CellState>>) = b.map { it.toMutableList() }.toMutableList()

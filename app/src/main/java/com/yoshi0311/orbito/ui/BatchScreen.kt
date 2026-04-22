@@ -47,6 +47,9 @@ fun BatchScreen(
     config: GameConfig,
     sessionKey: Int = 0,
     onBack: () -> Unit = {},
+    userBots: List<BotConfig> = emptyList(),
+    onNewBot: () -> Unit = {},
+    onEditBot: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: BatchViewModel = viewModel(key = "batch_$sessionKey", factory = BatchViewModel.factory(config))
 ) {
@@ -96,9 +99,12 @@ fun BatchScreen(
                     whiteBot = whiteBot,
                     blackBot = blackBot,
                     batchCount = batchCount,
+                    userBots = userBots,
                     onWhiteBotChange = { whiteBot = it },
                     onBlackBotChange = { blackBot = it },
-                    onBatchCountChange = { batchCount = it }
+                    onBatchCountChange = { batchCount = it },
+                    onNewBot = onNewBot,
+                    onEditBot = onEditBot
                 )
             }
         }
@@ -205,9 +211,12 @@ private fun BatchConfigSection(
     whiteBot: BotConfig,
     blackBot: BotConfig,
     batchCount: Int,
+    userBots: List<BotConfig> = emptyList(),
     onWhiteBotChange: (BotConfig) -> Unit,
     onBlackBotChange: (BotConfig) -> Unit,
-    onBatchCountChange: (Int) -> Unit
+    onBatchCountChange: (Int) -> Unit,
+    onNewBot: () -> Unit = {},
+    onEditBot: (String) -> Unit = {}
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -222,14 +231,14 @@ private fun BatchConfigSection(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Ball(color = WhiteBall, size = 10.dp)
-                BotSelector(selectedBot = whiteBot, onBotChange = onWhiteBotChange)
+                BotSelector(selectedBot = whiteBot, userBots = userBots, onBotChange = onWhiteBotChange, onNewBot = onNewBot, onEditBot = onEditBot)
             }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Ball(color = BlackBall, size = 10.dp)
-                BotSelector(selectedBot = blackBot, onBotChange = onBlackBotChange)
+                BotSelector(selectedBot = blackBot, userBots = userBots, onBotChange = onBlackBotChange, onNewBot = onNewBot, onEditBot = onEditBot)
             }
         }
         BatchCountSelector(count = batchCount, onCountChange = onBatchCountChange)
