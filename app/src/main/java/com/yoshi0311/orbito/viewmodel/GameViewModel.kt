@@ -98,7 +98,13 @@ class GameViewModel(
             _state.value = s.copy(isRotating = false, boardBeforeRotation = null)
             return
         }
-        val winner = checkWinner(s.board)
+        val ws = checkWinners(s.board)
+        val winner = when {
+            ws.size == 2 -> if (s.currentPlayer == Player.WHITE) Player.BLACK else Player.WHITE
+            ws.size == 1 -> ws.first()
+            s.whiteSideCount == 0 && s.blackSideCount == 0 -> s.currentPlayer
+            else -> null
+        }
         val nextPlayer = if (s.currentPlayer == Player.WHITE) Player.BLACK else Player.WHITE
         _state.value = s.copy(
             isRotating = false,
@@ -147,11 +153,18 @@ class GameViewModel(
             val didTimeout = withTimeoutOrNull(2000L) {
                 withContext(Dispatchers.IO) {
                     try {
-                        val funcName = if (botConfig.id == "smart_bot") "smart_move" else "move"
-                        rawResponse = Python.getInstance()
-                            .getModule("script")
-                            .callAttr(funcName, stateStr)
-                            .toString()
+                        rawResponse = if (botConfig.isUserBot && botConfig.filePath != null) {
+                            Python.getInstance()
+                                .getModule("executor")
+                                .callAttr("run_user_file", botConfig.filePath, stateStr)
+                                .toString()
+                        } else {
+                            val funcName = if (botConfig.id == "smart_bot") "smart_move" else "move"
+                            Python.getInstance()
+                                .getModule("script")
+                                .callAttr(funcName, stateStr)
+                                .toString()
+                        }
                     } catch (e: Exception) {
                         pythonException = e.message ?: "unknown"
                     }
@@ -336,21 +349,14 @@ class GameViewModel(
         return new.toImmutable()
     }
 
-    private fun checkWinner(board: List<List<CellState>>): Player? {
+    private fun checkWinners(board: List<List<CellState>>): Set<Player> {
         fun CellState.toPlayer() = if (this == CellState.WHITE) Player.WHITE else Player.BLACK
-        for (r in 0..3) {
-            val c = board[r][0]
-            if (c != CellState.EMPTY && board[r].all { it == c }) return c.toPlayer()
-        }
-        for (col in 0..3) {
-            val c = board[0][col]
-            if (c != CellState.EMPTY && (0..3).all { board[it][col] == c }) return c.toPlayer()
-        }
-        val d1 = board[0][0]
-        if (d1 != CellState.EMPTY && (0..3).all { board[it][it] == d1 }) return d1.toPlayer()
-        val d2 = board[0][3]
-        if (d2 != CellState.EMPTY && (0..3).all { board[it][3 - it] == d2 }) return d2.toPlayer()
-        return null
+        val winners = mutableSetOf<Player>()
+        for (r in 0..3) { val c = board[r][0]; if (c != CellState.EMPTY && board[r].all { it == c }) winners.add(c.toPlayer()) }
+        for (col in 0..3) { val c = board[0][col]; if (c != CellState.EMPTY && (0..3).all { board[it][col] == c }) winners.add(c.toPlayer()) }
+        val d1 = board[0][0]; if (d1 != CellState.EMPTY && (0..3).all { board[it][it] == d1 }) winners.add(d1.toPlayer())
+        val d2 = board[0][3]; if (d2 != CellState.EMPTY && (0..3).all { board[it][3 - it] == d2 }) winners.add(d2.toPlayer())
+        return winners
     }
 
     private fun isAdjacent(from: Pair<Int, Int>, toRow: Int, toCol: Int) =

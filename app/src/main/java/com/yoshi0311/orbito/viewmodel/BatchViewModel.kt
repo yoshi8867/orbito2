@@ -70,11 +70,17 @@ class BatchViewModel(initialConfig: GameConfig) : ViewModel() {
 
         repeat(200) {
             val stateStr = encodeState(board, whiteSide, blackSide, currentPlayer)
-            val botId = config.botFor(currentPlayer)?.id ?: ""
-            val funcName = if (botId == "smart_bot") "smart_move" else "move"
+            val botConfig = config.botFor(currentPlayer)
             val rawResponse = withContext(Dispatchers.IO) {
-                try { Python.getInstance().getModule("script").callAttr(funcName, stateStr).toString() }
-                catch (e: Exception) { null }
+                try {
+                    if (botConfig?.isUserBot == true && botConfig.filePath != null) {
+                        Python.getInstance().getModule("executor")
+                            .callAttr("run_user_file", botConfig.filePath, stateStr).toString()
+                    } else {
+                        val funcName = if (botConfig?.id == "smart_bot") "smart_move" else "move"
+                        Python.getInstance().getModule("script").callAttr(funcName, stateStr).toString()
+                    }
+                } catch (e: Exception) { null }
             }
             val move = rawResponse?.let { parseBotResponse(it) } ?: randomMove(board)
 
@@ -105,7 +111,14 @@ class BatchViewModel(initialConfig: GameConfig) : ViewModel() {
             if (currentPlayer == Player.WHITE) whiteSide-- else blackSide--
             board = rotate(board)
 
-            checkWinner(board)?.let { return SimResult(it, board) }
+            val ws = checkWinners(board)
+            val w = when {
+                ws.size == 2 -> if (currentPlayer == Player.WHITE) Player.BLACK else Player.WHITE
+                ws.size == 1 -> ws.first()
+                whiteSide == 0 && blackSide == 0 -> currentPlayer
+                else -> null
+            }
+            if (w != null) return SimResult(w, board)
             currentPlayer = if (currentPlayer == Player.WHITE) Player.BLACK else Player.WHITE
         }
         return SimResult(currentPlayer, board)
@@ -143,21 +156,14 @@ class BatchViewModel(initialConfig: GameConfig) : ViewModel() {
         return new.toImmutable()
     }
 
-    private fun checkWinner(board: List<List<CellState>>): Player? {
+    private fun checkWinners(board: List<List<CellState>>): Set<Player> {
         fun CellState.toPlayer() = if (this == CellState.WHITE) Player.WHITE else Player.BLACK
-        for (r in 0..3) {
-            val c = board[r][0]
-            if (c != CellState.EMPTY && board[r].all { it == c }) return c.toPlayer()
-        }
-        for (col in 0..3) {
-            val c = board[0][col]
-            if (c != CellState.EMPTY && (0..3).all { board[it][col] == c }) return c.toPlayer()
-        }
-        val d1 = board[0][0]
-        if (d1 != CellState.EMPTY && (0..3).all { board[it][it] == d1 }) return d1.toPlayer()
-        val d2 = board[0][3]
-        if (d2 != CellState.EMPTY && (0..3).all { board[it][3 - it] == d2 }) return d2.toPlayer()
-        return null
+        val winners = mutableSetOf<Player>()
+        for (r in 0..3) { val c = board[r][0]; if (c != CellState.EMPTY && board[r].all { it == c }) winners.add(c.toPlayer()) }
+        for (col in 0..3) { val c = board[0][col]; if (c != CellState.EMPTY && (0..3).all { board[it][col] == c }) winners.add(c.toPlayer()) }
+        val d1 = board[0][0]; if (d1 != CellState.EMPTY && (0..3).all { board[it][it] == d1 }) winners.add(d1.toPlayer())
+        val d2 = board[0][3]; if (d2 != CellState.EMPTY && (0..3).all { board[it][3 - it] == d2 }) winners.add(d2.toPlayer())
+        return winners
     }
 
     private fun isAdjacent(from: Pair<Int, Int>, toRow: Int, toCol: Int) =

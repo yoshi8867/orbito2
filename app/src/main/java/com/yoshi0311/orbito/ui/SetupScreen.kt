@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -42,6 +44,9 @@ import com.yoshi0311.orbito.ui.theme.WhiteBall
 fun SetupScreen(
     onStartGame: (GameConfig) -> Unit,
     onBack: () -> Unit,
+    onNewBot: () -> Unit = {},
+    onEditBot: (String) -> Unit = {},
+    userBots: List<BotConfig> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     var whiteType by remember { mutableStateOf(PlayerType.HUMAN) }
@@ -81,16 +86,22 @@ fun SetupScreen(
                     ballColor = WhiteBall,
                     type = whiteType,
                     selectedBot = whiteBot,
+                    userBots = userBots,
                     onTypeChange = { whiteType = it },
-                    onBotChange = { whiteBot = it }
+                    onBotChange = { whiteBot = it },
+                    onNewBot = onNewBot,
+                    onEditBot = onEditBot
                 )
                 PlayerPanel(
                     label = "BLACK",
                     ballColor = BlackBall,
                     type = blackType,
                     selectedBot = blackBot,
+                    userBots = userBots,
                     onTypeChange = { blackType = it },
-                    onBotChange = { blackBot = it }
+                    onBotChange = { blackBot = it },
+                    onNewBot = onNewBot,
+                    onEditBot = onEditBot
                 )
             }
 
@@ -152,8 +163,11 @@ private fun PlayerPanel(
     ballColor: Color,
     type: PlayerType,
     selectedBot: BotConfig,
+    userBots: List<BotConfig> = emptyList(),
     onTypeChange: (PlayerType) -> Unit,
-    onBotChange: (BotConfig) -> Unit
+    onBotChange: (BotConfig) -> Unit,
+    onNewBot: () -> Unit = {},
+    onEditBot: (String) -> Unit = {}
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -184,7 +198,13 @@ private fun PlayerPanel(
             )
         }
         AnimatedVisibility(visible = type == PlayerType.BOT) {
-            BotSelector(selectedBot = selectedBot, onBotChange = onBotChange)
+            BotSelector(
+                selectedBot = selectedBot,
+                userBots = userBots,
+                onBotChange = onBotChange,
+                onNewBot = onNewBot,
+                onEditBot = onEditBot
+            )
         }
     }
 }
@@ -216,7 +236,13 @@ private fun TypeChip(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-internal fun BotSelector(selectedBot: BotConfig, onBotChange: (BotConfig) -> Unit) {
+internal fun BotSelector(
+    selectedBot: BotConfig,
+    userBots: List<BotConfig> = emptyList(),
+    onBotChange: (BotConfig) -> Unit,
+    onNewBot: () -> Unit = {},
+    onEditBot: (String) -> Unit = {}
+) {
     var expanded by remember { mutableStateOf(false) }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -242,6 +268,7 @@ internal fun BotSelector(selectedBot: BotConfig, onBotChange: (BotConfig) -> Uni
                     .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
                     .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
             ) {
+                // Built-in bots
                 AVAILABLE_BOTS.forEach { bot ->
                     Text(
                         text = bot.name,
@@ -255,6 +282,52 @@ internal fun BotSelector(selectedBot: BotConfig, onBotChange: (BotConfig) -> Uni
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
+                // User bots (with pencil icon)
+                if (userBots.isNotEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
+                    userBots.forEach { bot ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = bot.name,
+                                color = if (bot == selectedBot) Color.White else Color.White.copy(alpha = 0.6f),
+                                fontSize = 9.sp,
+                                modifier = Modifier
+                                    .clickable(
+                                        indication = null,
+                                        interactionSource = remember { MutableInteractionSource() }
+                                    ) { onBotChange(bot); expanded = false }
+                                    .padding(start = 12.dp, top = 6.dp, bottom = 6.dp, end = 2.dp)
+                            )
+                            Text(
+                                text = "✏",
+                                color = Color.White.copy(alpha = 0.3f),
+                                fontSize = 8.sp,
+                                modifier = Modifier
+                                    .clickable(
+                                        indication = null,
+                                        interactionSource = remember { MutableInteractionSource() }
+                                    ) { onEditBot(bot.name); expanded = false }
+                                    .padding(horizontal = 6.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+                // + NEW
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.1f)))
+                Text(
+                    text = "+ NEW",
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 9.sp,
+                    modifier = Modifier
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { onNewBot(); expanded = false }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                )
             }
         }
     }
