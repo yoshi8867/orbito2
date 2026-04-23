@@ -392,8 +392,8 @@ private fun EditorPanel(
             Spacer(Modifier.weight(1f))
             EditorActionButton("INFO", onClick = onInfo)
             EditorActionButton("SAVE", onClick = onSave)
-            EditorActionButton("UNDO", enabled = state.canUndo, onClick = onUndo)
-            EditorActionButton("REDO", enabled = state.canRedo, onClick = onRedo)
+            // EditorActionButton("UNDO", enabled = state.canUndo, onClick = onUndo)
+            // EditorActionButton("REDO", enabled = state.canRedo, onClick = onRedo)
             if (state.savedFileName != null) {
                 EditorActionButton("DEL", onClick = onDelete)
             }

@@ -1,5 +1,11 @@
 package com.yoshi0311.orbito.ui
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -16,9 +22,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -33,6 +42,24 @@ fun StartScreen(
     onOnline: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val isWifiConnected by produceState(initialValue = false, context) {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        fun check(): Boolean {
+            val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
+            return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+        }
+        value = check()
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onCapabilitiesChanged(n: Network, c: NetworkCapabilities) {
+                value = c.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+            }
+            override fun onLost(n: Network) { value = check() }
+        }
+        cm.registerNetworkCallback(NetworkRequest.Builder().build(), callback)
+        awaitDispose { cm.unregisterNetworkCallback(callback) }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -85,18 +112,21 @@ fun StartScreen(
             Spacer(Modifier.height(12.dp))
 
             TextButton(
-                onClick = onOnline,
+                onClick = {
+                    if (isWifiConnected) onOnline()
+                    else Toast.makeText(context, "Wi-Fi required", Toast.LENGTH_SHORT).show()
+                },
                 modifier = Modifier
                     .border(
                         width = 1.dp,
-                        color = Color.White.copy(alpha = 0.25f),
+                        color = Color.White.copy(alpha = if (isWifiConnected) 0.25f else 0.12f),
                         shape = RoundedCornerShape(24.dp)
                     )
                     .padding(horizontal = 8.dp)
             ) {
                 Text(
                     text = "ONLINE",
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = Color.White.copy(alpha = if (isWifiConnected) 0.6f else 0.3f),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 4.sp
@@ -105,4 +135,3 @@ fun StartScreen(
         }
     }
 }
-

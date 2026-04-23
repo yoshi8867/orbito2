@@ -22,10 +22,12 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,6 +54,13 @@ fun OnlineModal(
     modifier: Modifier = Modifier
 ) {
     var nickname by remember { mutableStateOf(state.myNickname) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(5000L)
+            onRefresh()
+        }
+    }
 
     Box(
         modifier = modifier
@@ -148,7 +157,7 @@ fun OnlineModal(
                 ) {
                     if (state.discoveredRooms.isEmpty()) {
                         Text(
-                            text = "방을 찾는 중...",
+                            text = "",
                             color = Color.White.copy(alpha = 0.3f),
                             fontSize = 11.sp,
                             modifier = Modifier.align(Alignment.Center)
