@@ -1,6 +1,9 @@
 package com.yoshi0311.orbito.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -22,15 +25,23 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class GameViewModel(
+    application: Application,
     private val config: GameConfig = GameConfig()
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     companion object {
         fun factory(config: GameConfig) = viewModelFactory {
-            initializer { GameViewModel(config) }
+            initializer { GameViewModel(this[APPLICATION_KEY]!!, config) }
         }
+    }
+
+    private val prefs by lazy {
+        getApplication<Application>().getSharedPreferences("orbito_prefs", Context.MODE_PRIVATE)
     }
 
     private val _state = MutableStateFlow(GameState())
@@ -40,6 +51,8 @@ class GameViewModel(
     private var botJob: Job? = null
     private var _pendingBotMove: BotMove? = null
     private var _pendingBotName: String = ""
+    private var pendingHumanOptMove: Pair<Int, Int>? = null
+    private val moves = mutableListOf<String>()
 
     init {
         if (config.typeFor(Player.BLACK) == PlayerType.HUMAN) startTimer() else triggerBot()
@@ -61,6 +74,8 @@ class GameViewModel(
         botJob?.cancel()
         _pendingBotMove = null
         _pendingBotName = ""
+        pendingHumanOptMove = null
+        moves.clear()
         val limit = _state.value.timeLimitSeconds
         _state.value = GameState(timeLimitSeconds = limit)
         if (config.typeFor(Player.BLACK) == PlayerType.HUMAN) startTimer() else triggerBot()
@@ -114,13 +129,41 @@ class GameViewModel(
             winner = winner
         )
         logState("ROTATION_COMPLETE→${nextPlayer}")
-        if (winner == null) {
+        if (winner != null) {
+            prefs.edit().putString("last_game_record", buildRecord()).apply()
+        } else {
             if (config.typeFor(nextPlayer) == PlayerType.HUMAN) startTimer() else triggerBot()
         }
     }
 
+    fun generateRecord(): String = buildRecord()
+
+    fun defaultFileName(): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd(HHmm)", Locale.getDefault())
+        val whiteName = if (config.whiteType == PlayerType.HUMAN) "player"
+                        else (config.whiteBot?.name ?: "bot").replace(" ", "_")
+        val blackName = if (config.blackType == PlayerType.HUMAN) "player"
+                        else (config.blackBot?.name ?: "bot").replace(" ", "_")
+        return "orbit${sdf.format(Date())}${whiteName}_vs_${blackName}.txt"
+    }
+
+    private fun buildRecord(): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        val whiteName = if (config.whiteType == PlayerType.HUMAN) "player"
+                        else "${config.whiteBot?.name?.lowercase() ?: "bot"} (bot)"
+        val blackName = if (config.blackType == PlayerType.HUMAN) "player"
+                        else "${config.blackBot?.name?.lowercase() ?: "bot"} (bot)"
+        return buildString {
+            appendLine(sdf.format(Date()))
+            appendLine("w: $whiteName")
+            appendLine("b: $blackName")
+            appendLine("---")
+            moves.forEach { appendLine(it) }
+        }.trimEnd()
+    }
+
     private fun startTimer() {
-        val limitSec = _state.value.timeLimitSeconds ?: return  // null = unlimited
+        val limitSec = _state.value.timeLimitSeconds ?: return
         timerJob?.cancel()
         _state.value = _state.value.copy(timeLeft = limitSec)
         timerJob = viewModelScope.launch {
@@ -132,6 +175,7 @@ class GameViewModel(
                 if (remaining == 0) {
                     val winner = if (s.currentPlayer == Player.WHITE) Player.BLACK else Player.WHITE
                     _state.value = _state.value.copy(phase = GamePhase.DONE, winner = winner)
+                    prefs.edit().putString("last_game_record", buildRecord()).apply()
                     return@launch
                 }
             }
@@ -180,7 +224,15 @@ class GameViewModel(
                 else -> null
             }
 
-            _pendingBotMove = botMove ?: randomMove(_state.value)
+            val errorForRecord: String? = when {
+                didTimeout -> "timeout"
+                pythonException != null -> pythonException
+                rawResponse != null && botMove == null -> rawResponse
+                else -> null
+            }
+
+            val actualMove = botMove ?: randomMove(_state.value)
+            _pendingBotMove = actualMove.copy(errorResponse = errorForRecord)
             _pendingBotName = botConfig.name
             _state.value = _state.value.copy(isBotThinking = false, botMoveReady = true)
             logState("BOT_READY(${_state.value.currentPlayer})")
@@ -193,6 +245,8 @@ class GameViewModel(
         val opponentColor = if (player == Player.WHITE) CellState.BLACK else CellState.WHITE
         val ownColor = if (player == Player.WHITE) CellState.WHITE else CellState.BLACK
 
+        var executedOptMove: Pair<Int, Int>? = null
+
         // --- optional move: flash → animate → commit ---
         if (move.optMove != null) {
             val (srcPos, dstPos) = move.optMove
@@ -203,6 +257,7 @@ class GameViewModel(
                 board[dstRow][dstCol] == CellState.EMPTY &&
                 isAdjacent(Pair(srcRow, srcCol), dstRow, dstCol)
             ) {
+                executedOptMove = move.optMove
                 _state.value = _state.value.copy(botHighlightCell = srcPos)
                 delay(500)
                 _state.value = _state.value.copy(botHighlightCell = null)
@@ -229,6 +284,13 @@ class GameViewModel(
             addLog("[$botName] invalid placement → fallback")
             placePos = fallback
         }
+
+        val prefix = if (player == Player.WHITE) "w" else "b"
+        val moveStr = formatMoveStr(executedOptMove, placePos)
+        val recordLine = if (move.errorResponse != null) {
+            "$prefix: $moveStr # error: ${move.errorResponse}"
+        } else "$prefix: $moveStr"
+        moves.add(recordLine)
 
         val newBoard = mutableBoard(_state.value.board)
         newBoard[placePos / 4][placePos % 4] = ownColor
@@ -262,6 +324,7 @@ class GameViewModel(
             sel != null && sel.first == row && sel.second == col ->
                 _state.value = s.copy(selectedCell = null)
             sel != null && s.board[row][col] == CellState.EMPTY && isAdjacent(sel, row, col) -> {
+                pendingHumanOptMove = Pair(sel.first * 4 + sel.second, row * 4 + col)
                 val newBoard = mutableBoard(s.board)
                 newBoard[row][col] = newBoard[sel.first][sel.second]
                 newBoard[sel.first][sel.second] = CellState.EMPTY
@@ -282,6 +345,12 @@ class GameViewModel(
     }
 
     private fun placeOnBoard(s: GameState, row: Int, col: Int) {
+        val place = row * 4 + col
+        val prefix = if (s.currentPlayer == Player.WHITE) "w" else "b"
+        val moveStr = formatMoveStr(pendingHumanOptMove, place)
+        moves.add("$prefix: $moveStr")
+        pendingHumanOptMove = null
+
         val ownColor = if (s.currentPlayer == Player.WHITE) CellState.WHITE else CellState.BLACK
         val newBoard = mutableBoard(s.board)
         newBoard[row][col] = ownColor
@@ -299,6 +368,9 @@ class GameViewModel(
         logState("PLACED(${s.currentPlayer}@${row*4+col})")
     }
 
+    private fun formatMoveStr(optMove: Pair<Int, Int>?, place: Int): String =
+        if (optMove != null) "${optMove.first}>${optMove.second}/$place" else "$place"
+
     private fun encodeState(s: GameState, myColor: Player): String {
         val cells = s.board.flatten().joinToString(",") {
             when (it) { CellState.WHITE -> "w"; CellState.BLACK -> "b"; else -> "" }
@@ -308,7 +380,12 @@ class GameViewModel(
     }
 
     private fun parseBotResponse(response: String): BotMove? {
-        val parts = response.trim().split("/")
+        val trimmed = response.trim()
+        if (!trimmed.contains("/")) {
+            val place = trimmed.toIntOrNull()?.takeIf { it in 0..15 } ?: return null
+            return BotMove(null, place)
+        }
+        val parts = trimmed.split("/")
         if (parts.size != 2) return null
         val placePos = parts[1].trim().toIntOrNull()?.takeIf { it in 0..15 } ?: return null
         val optMove = if (parts[0].trim() == "skip") null else {
@@ -365,5 +442,5 @@ class GameViewModel(
     private fun mutableBoard(board: List<List<CellState>>) = board.map { it.toMutableList() }.toMutableList()
     private fun List<MutableList<CellState>>.toImmutable() = map { it.toList() }
 
-    private data class BotMove(val optMove: Pair<Int, Int>?, val placePos: Int)
+    private data class BotMove(val optMove: Pair<Int, Int>?, val placePos: Int, val errorResponse: String? = null)
 }

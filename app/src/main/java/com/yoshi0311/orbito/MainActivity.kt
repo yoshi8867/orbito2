@@ -2,8 +2,10 @@ package com.yoshi0311.orbito
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +52,15 @@ class MainActivity : ComponentActivity() {
                 var botEditOrigin by remember { mutableStateOf("setup") }
                 var botEditName by remember { mutableStateOf<String?>(null) }
                 var botEditKey by remember { mutableIntStateOf(0) }
+                val pendingOnlineRecord = remember { mutableStateOf<String?>(null) }
+                val onlineSaveLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.CreateDocument("text/plain")
+                ) { uri ->
+                    val record = pendingOnlineRecord.value ?: return@rememberLauncherForActivityResult
+                    uri ?: return@rememberLauncherForActivityResult
+                    contentResolver.openOutputStream(uri)?.use { it.write(record.toByteArray()) }
+                    pendingOnlineRecord.value = null
+                }
 
                 val onlineVm: OnlineViewModel = viewModel()
                 val onlineState by onlineVm.state.collectAsStateWithLifecycle()
@@ -147,6 +158,12 @@ class MainActivity : ComponentActivity() {
                                     screen = "start"
                                 },
                                 onRotationComplete = onlineVm::onRotationComplete,
+                                onSaveRecord = {
+                                    val record = onlineVm.generateRecord()
+                                    onlineVm.saveLastRecord(record)
+                                    pendingOnlineRecord.value = record
+                                    onlineSaveLauncher.launch(onlineVm.defaultFileName())
+                                },
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

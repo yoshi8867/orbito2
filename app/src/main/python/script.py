@@ -89,7 +89,7 @@ def move(state_str):
     if opt_src is not None:
         return f"{opt_src}>{opt_dst}/{place}"
     else:
-        return f"skip/{place}"
+        return f"{place}"
 
 
 def smart_move(state_str):
@@ -142,6 +142,6 @@ def smart_move(state_str):
         return move(state_str)
 
     if best_opt is None:
-        return f"skip/{best_place}"
+        return f"{best_place}"
     else:
         return f"{best_opt[0]}>{best_opt[1]}/{best_place}"

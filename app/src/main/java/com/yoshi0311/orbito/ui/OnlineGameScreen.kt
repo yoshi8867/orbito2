@@ -74,6 +74,7 @@ fun OnlineGameScreen(
     onSendChat: (String) -> Unit,
     onLeave: () -> Unit,
     onRotationComplete: () -> Unit = {},
+    onSaveRecord: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.background(AppBackground)) {
@@ -98,7 +99,7 @@ fun OnlineGameScreen(
             else -> {}
         }
         if (state.game.winner != null) {
-            OnlineWinnerOverlay(state.game.winner!!, state.players, onLeave)
+            OnlineWinnerOverlay(state.game.winner!!, state.players, onLeave, onSaveRecord)
         }
     }
 }
@@ -113,7 +114,7 @@ private fun LandscapeLayout(
     onRotationComplete: () -> Unit
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val cellSize = minOf(maxWidth * 0.5f, maxHeight * 0.85f) / 4
+        val cellSize = minOf(maxWidth * 0.4f, maxHeight * 0.7f) / 4
         val ballSize = cellSize * 0.68f
 
         Row(
@@ -166,7 +167,7 @@ private fun PortraitLayout(
     onRotationComplete: () -> Unit
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val cellSize = (maxWidth - 120.dp) / 4
+        val cellSize = (maxWidth - 160.dp) / 4
         val ballSize = cellSize * 0.68f
         var chatOpen by remember { mutableStateOf(false) }
 
@@ -315,6 +316,12 @@ private fun BoardArea(
                 }
             }
 
+            NamePanel(
+                whiteName = state.players.find { it.role == OnlineRole.WHITE }?.nickname ?: "WHITE",
+                blackName = state.players.find { it.role == OnlineRole.BLACK }?.nickname ?: "BLACK",
+                modifier = Modifier.fillMaxWidth().padding(horizontal = sideBallSize + 10.dp)
+            )
+
             // Board row
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SideBallsPanel(state.game.whiteSideCount, WhiteBall, sideBallSize, isTablet)
@@ -336,7 +343,7 @@ private fun BoardArea(
             visible = quickChatOpen,
             enter = slideInVertically(tween(200)) { it } + fadeIn(tween(200)),
             exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(200)),
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 44.dp).fillMaxWidth()
+            modifier = Modifier.align(Alignment.BottomCenter).padding(start = 24.dp, end = 24.dp, bottom = 44.dp).fillMaxWidth()
         ) {
             QuickChatPanel(onSend = { msg -> onSendChat(msg); quickChatOpen = false })
         }
@@ -344,7 +351,7 @@ private fun BoardArea(
         // 💬 toggle button
         Text(
             text = "💬",
-            fontSize = 20.sp,
+            fontSize = 40.sp,
             color = if (quickChatOpen) Color.White else Color.White.copy(alpha = 0.4f),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -404,7 +411,7 @@ private fun QuickChatPanel(onSend: (String) -> Unit) {
                             ) { onSend(msg) }
                             .padding(horizontal = 10.dp, vertical = 9.dp)
                     ) {
-                        Text(text = msg, color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp)
+                        Text(text = msg, color = Color.White.copy(alpha = 0.85f), fontSize = 20.sp)
                     }
                 }
             }
@@ -656,7 +663,8 @@ private fun DisconnectedOverlay(message: String, onLeave: () -> Unit) {
 private fun OnlineWinnerOverlay(
     winner: Player,
     players: List<OnlinePlayer>,
-    onLeave: () -> Unit
+    onLeave: () -> Unit,
+    onSaveRecord: () -> Unit = {}
 ) {
     val winnerColor = if (winner == Player.WHITE) WhiteBall else BlackBall
     val winnerRole = if (winner == Player.WHITE) OnlineRole.WHITE else OnlineRole.BLACK
@@ -679,6 +687,9 @@ private fun OnlineWinnerOverlay(
             Text(winnerNick, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 3.sp)
             TextButton(onClick = onLeave) {
                 Text("← LOBBY", color = Color.White, fontSize = 12.sp, letterSpacing = 2.sp)
+            }
+            TextButton(onClick = onSaveRecord) {
+                Text("SAVE RECORD", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, letterSpacing = 2.sp)
             }
         }
     }

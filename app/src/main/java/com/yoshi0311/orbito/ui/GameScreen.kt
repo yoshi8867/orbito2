@@ -1,6 +1,8 @@
 package com.yoshi0311.orbito.ui
 
 import android.annotation.SuppressLint
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -23,6 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -68,6 +72,16 @@ fun GameScreen(
     var logVisible by remember { mutableStateOf(false) }
     var settingsOpen by remember { mutableStateOf(false) }
     val isCurrentPlayerBot = config.typeFor(state.currentPlayer) == PlayerType.BOT
+    val context = LocalContext.current
+    var pendingRecord by remember { mutableStateOf<String?>(null) }
+    val saveLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        val record = pendingRecord ?: return@rememberLauncherForActivityResult
+        uri ?: return@rememberLauncherForActivityResult
+        context.contentResolver.openOutputStream(uri)?.use { it.write(record.toByteArray()) }
+        pendingRecord = null
+    }
 
     Box(modifier = modifier.background(AppBackground)) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -100,7 +114,17 @@ fun GameScreen(
                     Spacer(Modifier.height(3.dp))
                 }
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(12.dp))
+
+                NamePanel(
+                    whiteName = if (config.whiteType == PlayerType.HUMAN) "PLAYER"
+                               else "${config.whiteBot?.name ?: "BOT"} BOT",
+                    blackName = if (config.blackType == PlayerType.HUMAN) "PLAYER"
+                               else "${config.blackBot?.name ?: "BOT"} BOT",
+                    modifier = Modifier.width(boardWidth + sideBallSize * 2 + 20.dp)
+                )
+
+                Spacer(Modifier.height(8.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     SideBallsPanel(
@@ -182,7 +206,11 @@ fun GameScreen(
             WinnerOverlay(
                 winner = state.winner!!,
                 isTimeout = state.timeLeft == 0,
-                onRestart = viewModel::restart
+                onRestart = viewModel::restart,
+                onSaveRecord = {
+                    pendingRecord = viewModel.generateRecord()
+                    saveLauncher.launch(viewModel.defaultFileName())
+                }
             )
         }
 
@@ -367,7 +395,7 @@ private fun LogPanel(logs: List<String>, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun WinnerOverlay(winner: Player, isTimeout: Boolean, onRestart: () -> Unit) {
+private fun WinnerOverlay(winner: Player, isTimeout: Boolean, onRestart: () -> Unit, onSaveRecord: () -> Unit = {}) {
     val winnerColor = if (winner == Player.WHITE) WhiteBall else BlackBall
     val winnerName = if (winner == Player.WHITE) "WHITE" else "BLACK"
 
@@ -401,6 +429,27 @@ private fun WinnerOverlay(winner: Player, isTimeout: Boolean, onRestart: () -> U
             TextButton(onClick = onRestart) {
                 Text(text = "PLAY AGAIN", color = Color.White, fontSize = 12.sp, letterSpacing = 2.sp)
             }
+            TextButton(onClick = onSaveRecord) {
+                Text(text = "SAVE RECORD", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, letterSpacing = 2.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun NamePanel(whiteName: String, blackName: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Box(Modifier.size(7.dp).background(WhiteBall, RoundedCornerShape(50)))
+            Text(whiteName, color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp, letterSpacing = 1.sp)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Box(Modifier.size(7.dp).background(BlackBall, RoundedCornerShape(50)))
+            Text(blackName, color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp, letterSpacing = 1.sp)
         }
     }
 }

@@ -32,6 +32,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private const val TAG = "OnlineViewModel"
 
@@ -47,6 +50,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
     // Pending optional move (not yet committed to server)
     private var pendingOptSrc: Int? = null
     private var pendingOptDst: Int? = null
+    private val moves = mutableListOf<String>()
 
     private val prefs by lazy {
         getApplication<Application>().getSharedPreferences("orbito_prefs", android.content.Context.MODE_PRIVATE)
@@ -199,6 +203,33 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
         releaseMulticastLock()
         _state.value = OnlineState()
         pendingOptSrc = null; pendingOptDst = null
+        moves.clear()
+    }
+
+    fun generateRecord(): String {
+        val s = _state.value
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        val whiteName = s.players.find { it.role == OnlineRole.WHITE }?.nickname ?: "WHITE"
+        val blackName = s.players.find { it.role == OnlineRole.BLACK }?.nickname ?: "BLACK"
+        return buildString {
+            appendLine(sdf.format(Date()))
+            appendLine("w: $whiteName")
+            appendLine("b: $blackName")
+            appendLine("---")
+            moves.forEach { appendLine(it) }
+        }.trimEnd()
+    }
+
+    fun defaultFileName(): String {
+        val s = _state.value
+        val sdf = SimpleDateFormat("yyyy-MM-dd(HHmm)", Locale.getDefault())
+        val whiteName = (s.players.find { it.role == OnlineRole.WHITE }?.nickname ?: "white").replace(" ", "_")
+        val blackName = (s.players.find { it.role == OnlineRole.BLACK }?.nickname ?: "black").replace(" ", "_")
+        return "orbit${sdf.format(Date())}${whiteName}_vs_${blackName}.txt"
+    }
+
+    fun saveLastRecord(record: String) {
+        prefs.edit().putString("last_game_record", record).apply()
     }
 
     private fun handleServerEvent(event: ServerEvent) {
@@ -278,6 +309,9 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
 
     fun onRotationComplete() {
         _state.value = _state.value.copy(isRotating = false, boardBeforeRotation = null)
+        if (_state.value.game.winner != null) {
+            prefs.edit().putString("last_game_record", generateRecord()).apply()
+        }
     }
 
     private fun deRotate(b: List<List<CellState>>): List<List<CellState>> {
@@ -332,6 +366,18 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
 
         val boardBeforeRot = deRotate(newBoard)
         val optMove = detectOptionalMove(prevGame.board, boardBeforeRot)
+
+        val boardAfterOpt = if (optMove != null) {
+            applyOptMoveLocally(prevGame.board, optMove.first / 4, optMove.first % 4, optMove.second / 4, optMove.second % 4)
+        } else prevGame.board
+        val placePos = (0..15).firstOrNull { i ->
+            boardAfterOpt[i / 4][i % 4] == CellState.EMPTY && boardBeforeRot[i / 4][i % 4] != CellState.EMPTY
+        }
+        if (placePos != null) {
+            val prefix = if (prevGame.currentPlayer == Player.WHITE) "w" else "b"
+            val moveStr = if (optMove != null) "${optMove.first}>${optMove.second}/$placePos" else "$placePos"
+            moves.add("$prefix: $moveStr")
+        }
 
         if (optMove != null) {
             val (src, dst) = optMove
