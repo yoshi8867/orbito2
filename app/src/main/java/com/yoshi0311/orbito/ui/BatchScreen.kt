@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -228,14 +229,16 @@ private fun BatchConfigSection(
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.width(130.dp)
             ) {
                 Ball(color = WhiteBall, size = 10.dp)
                 BotSelector(selectedBot = whiteBot, userBots = userBots, onBotChange = onWhiteBotChange, onNewBot = onNewBot, onEditBot = onEditBot)
             }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.width(130.dp)
             ) {
                 Ball(color = BlackBall, size = 10.dp)
                 BotSelector(selectedBot = blackBot, userBots = userBots, onBotChange = onBlackBotChange, onNewBot = onNewBot, onEditBot = onEditBot)

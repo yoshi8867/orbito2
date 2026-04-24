@@ -29,6 +29,7 @@ import com.yoshi0311.orbito.ui.BotEditScreen
 import com.yoshi0311.orbito.ui.GameScreen
 import com.yoshi0311.orbito.ui.OnlineGameScreen
 import com.yoshi0311.orbito.ui.OnlineModal
+import com.yoshi0311.orbito.ui.ReplayScreen
 import com.yoshi0311.orbito.ui.SetupScreen
 import com.yoshi0311.orbito.ui.StartScreen
 import com.yoshi0311.orbito.ui.WaitingRoomOverlay
@@ -52,6 +53,7 @@ class MainActivity : ComponentActivity() {
                 var botEditOrigin by remember { mutableStateOf("setup") }
                 var botEditName by remember { mutableStateOf<String?>(null) }
                 var botEditKey by remember { mutableIntStateOf(0) }
+                var replayKey by remember { mutableIntStateOf(0) }
                 val pendingOnlineRecord = remember { mutableStateOf<String?>(null) }
                 val onlineSaveLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.CreateDocument("text/plain")
@@ -85,6 +87,10 @@ class MainActivity : ComponentActivity() {
                         onOnline = {
                             onlineVm.openLobby()
                             screen = "online_lobby"
+                        },
+                        onReplay = {
+                            replayKey++
+                            screen = "replay"
                         },
                         modifier = Modifier.fillMaxSize()
                     )
@@ -168,6 +174,11 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
+                    "replay" -> ReplayScreen(
+                        sessionKey = replayKey,
+                        onBack = { screen = "start" },
+                        modifier = Modifier.fillMaxSize()
+                    )
                     else -> GameScreen(
                         config = pendingConfig,
                         sessionKey = gameKey,

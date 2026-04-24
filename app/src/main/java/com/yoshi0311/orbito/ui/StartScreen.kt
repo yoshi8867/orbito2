@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yoshi0311.orbito.ui.theme.AppBackground
@@ -40,6 +37,7 @@ import com.yoshi0311.orbito.ui.theme.WhiteBall
 fun StartScreen(
     onStart: () -> Unit,
     onOnline: () -> Unit,
+    onReplay: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -52,11 +50,14 @@ fun StartScreen(
         value = check()
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onCapabilitiesChanged(n: Network, c: NetworkCapabilities) {
-                value = c.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                value = check()
             }
             override fun onLost(n: Network) { value = check() }
         }
-        cm.registerNetworkCallback(NetworkRequest.Builder().build(), callback)
+        val request = NetworkRequest.Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+            .build()
+        cm.registerNetworkCallback(request, callback)
         awaitDispose { cm.unregisterNetworkCallback(callback) }
     }
 
@@ -90,48 +91,44 @@ fun StartScreen(
 
             Spacer(Modifier.height(48.dp))
 
-            TextButton(
-                onClick = onStart,
-                modifier = Modifier
-                    .border(
-                        width = 1.dp,
-                        color = Color.White.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(24.dp)
-                    )
-                    .padding(horizontal = 8.dp)
-            ) {
-                Text(
-                    text = "START",
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 4.sp
-                )
-            }
+            StartMenuButton(text = "START", onClick = onStart)
 
             Spacer(Modifier.height(12.dp))
 
-            TextButton(
+            StartMenuButton(
+                text = "ONLINE",
+                enabled = isWifiConnected,
                 onClick = {
                     if (isWifiConnected) onOnline()
                     else Toast.makeText(context, "Wi-Fi required", Toast.LENGTH_SHORT).show()
-                },
-                modifier = Modifier
-                    .border(
-                        width = 1.dp,
-                        color = Color.White.copy(alpha = if (isWifiConnected) 0.25f else 0.12f),
-                        shape = RoundedCornerShape(24.dp)
-                    )
-                    .padding(horizontal = 8.dp)
-            ) {
-                Text(
-                    text = "ONLINE",
-                    color = Color.White.copy(alpha = if (isWifiConnected) 0.6f else 0.3f),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 4.sp
-                )
-            }
+                }
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            StartMenuButton(text = "REPLAY", onClick = onReplay)
         }
+    }
+}
+
+@Composable
+private fun StartMenuButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier
+            .border(
+                width = 1.dp,
+                color = Color.White.copy(alpha = if (enabled) 0.5f else 0.15f),
+                shape = RoundedCornerShape(24.dp)
+            )
+            .padding(horizontal = 8.dp)
+    ) {
+        Text(
+            text = text,
+            color = Color.White.copy(alpha = if (enabled) 1f else 0.3f),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 4.sp
+        )
     }
 }

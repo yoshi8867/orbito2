@@ -12,10 +12,15 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -64,6 +69,13 @@ fun SetupScreen(
             .background(AppBackground),
         contentAlignment = Alignment.Center
     ) {
+        TextButton(
+            onClick = onBack,
+            modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(start = 4.dp)
+        ) {
+            Text("←", color = Color.White.copy(alpha = 0.45f), fontSize = 18.sp)
+        }
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(36.dp),
@@ -245,7 +257,10 @@ internal fun BotSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.widthIn(max = 160.dp)
+    ) {
         Box(
             modifier = Modifier
                 .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
@@ -258,69 +273,72 @@ internal fun BotSelector(
             Text(
                 text = "${selectedBot.name} ▾",
                 color = Color.White.copy(alpha = 0.8f),
-                fontSize = 9.sp,
+                fontSize = 11.sp,
                 letterSpacing = 1.sp
             )
         }
         if (expanded) {
             Column(
                 modifier = Modifier
+                    .widthIn(max = 160.dp)
                     .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
                     .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
             ) {
-                // Built-in bots
-                AVAILABLE_BOTS.forEach { bot ->
-                    Text(
-                        text = bot.name,
-                        color = if (bot == selectedBot) Color.White else Color.White.copy(alpha = 0.6f),
-                        fontSize = 9.sp,
-                        modifier = Modifier
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) { onBotChange(bot); expanded = false }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
-                }
-                // User bots (with pencil icon)
-                if (userBots.isNotEmpty()) {
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
-                    userBots.forEach { bot ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text(
-                                text = bot.name,
-                                color = if (bot == selectedBot) Color.White else Color.White.copy(alpha = 0.6f),
-                                fontSize = 9.sp,
-                                modifier = Modifier
-                                    .clickable(
-                                        indication = null,
-                                        interactionSource = remember { MutableInteractionSource() }
-                                    ) { onBotChange(bot); expanded = false }
-                                    .padding(start = 12.dp, top = 6.dp, bottom = 6.dp, end = 2.dp)
-                            )
-                            Text(
-                                text = "✏",
-                                color = Color.White.copy(alpha = 0.3f),
-                                fontSize = 8.sp,
-                                modifier = Modifier
-                                    .clickable(
-                                        indication = null,
-                                        interactionSource = remember { MutableInteractionSource() }
-                                    ) { onEditBot(bot.name); expanded = false }
-                                    .padding(horizontal = 6.dp, vertical = 6.dp)
-                            )
+                LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                    items(AVAILABLE_BOTS) { bot ->
+                        Text(
+                            text = bot.name,
+                            color = if (bot == selectedBot) Color.White else Color.White.copy(alpha = 0.6f),
+                            fontSize = 11.sp,
+                            modifier = Modifier
+                                .clickable(
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() }
+                                ) { onBotChange(bot); expanded = false }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                    if (userBots.isNotEmpty()) {
+                        item {
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
+                        }
+                        items(userBots) { bot ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = bot.name,
+                                    color = if (bot == selectedBot) Color.White else Color.White.copy(alpha = 0.6f),
+                                    fontSize = 11.sp,
+                                    modifier = Modifier
+                                        .clickable(
+                                            indication = null,
+                                            interactionSource = remember { MutableInteractionSource() }
+                                        ) { onBotChange(bot); expanded = false }
+                                        .padding(start = 12.dp, top = 6.dp, bottom = 6.dp, end = 2.dp)
+                                )
+                                Text(
+                                    text = "✏️",
+                                    color = Color.White.copy(alpha = 0.3f),
+                                    fontSize = 10.sp,
+                                    modifier = Modifier
+                                        .clickable(
+                                            indication = null,
+                                            interactionSource = remember { MutableInteractionSource() }
+                                        ) { onEditBot(bot.name); expanded = false }
+                                        .padding(horizontal = 6.dp, vertical = 6.dp)
+                                )
+                            }
                         }
                     }
                 }
-                // + NEW
+                // 고정: + NEW
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.1f)))
                 Text(
                     text = "+ NEW",
                     color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 9.sp,
+                    fontSize = 11.sp,
                     modifier = Modifier
                         .clickable(
                             indication = null,
