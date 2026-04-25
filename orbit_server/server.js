@@ -53,7 +53,12 @@ app.get('/dashboard', async (req, res) => {
                 PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY batch)  AS batch_med,
                 PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY game)   AS game_med,
                 PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY online) AS online_med,
-                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY replay) AS replay_med
+                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY replay) AS replay_med,
+                MAX(edit)                       AS edit_max,
+                MAX(batch)                      AS batch_max,
+                MAX(game)                       AS game_max,
+                MAX(online)                     AS online_max,
+                MAX(replay)                     AS replay_max
              FROM usage_stats`
         );
 
@@ -66,11 +71,11 @@ app.get('/dashboard', async (req, res) => {
         }
 
         const screens = [
-            { label: 'BotEdit',  total: d.edit_total,   avg: d.edit_avg,   med: d.edit_med   },
-            { label: 'Batch',    total: d.batch_total,  avg: d.batch_avg,  med: d.batch_med  },
-            { label: 'Game',     total: d.game_total,   avg: d.game_avg,   med: d.game_med   },
-            { label: 'Online',   total: d.online_total, avg: d.online_avg, med: d.online_med },
-            { label: 'Replay',   total: d.replay_total, avg: d.replay_avg, med: d.replay_med },
+            { label: 'BotEdit',  total: d.edit_total,   avg: d.edit_avg,   med: d.edit_med,   max: d.edit_max   },
+            { label: 'Batch',    total: d.batch_total,  avg: d.batch_avg,  med: d.batch_med,  max: d.batch_max  },
+            { label: 'Game',     total: d.game_total,   avg: d.game_avg,   med: d.game_med,   max: d.game_max   },
+            { label: 'Online',   total: d.online_total, avg: d.online_avg, med: d.online_med, max: d.online_max },
+            { label: 'Replay',   total: d.replay_total, avg: d.replay_avg, med: d.replay_med, max: d.replay_max },
         ];
 
         const rows_html = screens.map(s => `
@@ -79,6 +84,7 @@ app.get('/dashboard', async (req, res) => {
                 <td>${hm(s.total)}</td>
                 <td>${hm(s.avg)}</td>
                 <td>${hm(s.med)}</td>
+                <td>${hm(s.max)}</td>
             </tr>`).join('');
 
         res.send(`<!DOCTYPE html>
@@ -106,6 +112,7 @@ app.get('/dashboard', async (req, res) => {
       <th>총 누적</th>
       <th>유저 평균</th>
       <th>유저 중간값</th>
+      <th>유저 최댓값</th>
     </tr>
   </thead>
   <tbody>${rows_html}</tbody>
