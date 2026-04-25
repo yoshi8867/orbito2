@@ -34,5 +34,89 @@ app.post('/api/stats', async (req, res) => {
     }
 });
 
+app.get('/dashboard', async (req, res) => {
+    try {
+        const { rows } = await pool.query(
+            `SELECT
+                COUNT(*)                        AS users,
+                SUM(edit)                       AS edit_total,
+                SUM(batch)                      AS batch_total,
+                SUM(game)                       AS game_total,
+                SUM(online)                     AS online_total,
+                SUM(replay)                     AS replay_total,
+                AVG(edit)                       AS edit_avg,
+                AVG(batch)                      AS batch_avg,
+                AVG(game)                       AS game_avg,
+                AVG(online)                     AS online_avg,
+                AVG(replay)                     AS replay_avg,
+                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY edit)   AS edit_med,
+                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY batch)  AS batch_med,
+                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY game)   AS game_med,
+                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY online) AS online_med,
+                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY replay) AS replay_med
+             FROM usage_stats`
+        );
+
+        const d = rows[0];
+        const users = parseInt(d.users);
+
+        function hm(minutes) {
+            const m = Math.round(parseFloat(minutes) || 0);
+            return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+        }
+
+        const screens = [
+            { label: 'BotEdit',  total: d.edit_total,   avg: d.edit_avg,   med: d.edit_med   },
+            { label: 'Batch',    total: d.batch_total,  avg: d.batch_avg,  med: d.batch_med  },
+            { label: 'Game',     total: d.game_total,   avg: d.game_avg,   med: d.game_med   },
+            { label: 'Online',   total: d.online_total, avg: d.online_avg, med: d.online_med },
+            { label: 'Replay',   total: d.replay_total, avg: d.replay_avg, med: d.replay_med },
+        ];
+
+        const rows_html = screens.map(s => `
+            <tr>
+                <td>${s.label}</td>
+                <td>${hm(s.total)}</td>
+                <td>${hm(s.avg)}</td>
+                <td>${hm(s.med)}</td>
+            </tr>`).join('');
+
+        res.send(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Orbito Stats</title>
+<style>
+  body { font-family: monospace; background: #111; color: #ddd; padding: 40px; }
+  h1   { font-size: 18px; letter-spacing: 4px; color: #fff; margin-bottom: 24px; }
+  p    { color: #888; margin: 4px 0 20px; font-size: 13px; }
+  table { border-collapse: collapse; min-width: 480px; }
+  th, td { padding: 10px 20px; text-align: right; border-bottom: 1px solid #2a2a2a; }
+  th { color: #666; font-size: 11px; letter-spacing: 1px; }
+  td:first-child, th:first-child { text-align: left; color: #aaa; }
+</style>
+</head>
+<body>
+<h1>ORBITO STATS</h1>
+<p>총 유저 수: ${users}</p>
+<table>
+  <thead>
+    <tr>
+      <th>Screen</th>
+      <th>총 누적</th>
+      <th>유저 평균</th>
+      <th>유저 중간값</th>
+    </tr>
+  </thead>
+  <tbody>${rows_html}</tbody>
+</table>
+</body>
+</html>`);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('db error');
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`orbit-server running on :${PORT}`));
