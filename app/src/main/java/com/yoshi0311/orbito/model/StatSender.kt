@@ -11,8 +11,7 @@ import java.net.URL
 
 object StatSender {
 
-    // TODO: 실제 Render URL로 교체
-    private const val SERVER_URL = "https://your-orbit-server.onrender.com/api/stats"
+    private const val SERVER_URL = "https://orbito2.onrender.com/api/stats"
 
     private const val PREFS_NAME = "orbito_prefs"
     private const val KEY_LAST_SEND = "stat_last_send"

@@ -19,8 +19,11 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.lifecycleScope
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
+import com.yoshi0311.orbito.model.StatSender
+import kotlinx.coroutines.launch
 import com.yoshi0311.orbito.model.BotVsBotMode
 import com.yoshi0311.orbito.model.GameConfig
 import com.yoshi0311.orbito.model.OnlineStatus
@@ -45,6 +48,7 @@ class MainActivity : ComponentActivity() {
         if (!Python.isStarted()) {
             Python.start(AndroidPlatform(this))
         }
+        lifecycleScope.launch { StatSender.sendIfNeeded(applicationContext) }
         setContent {
             OrbitoTheme {
                 var screen by rememberSaveable { mutableStateOf("start") }
