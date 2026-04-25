@@ -77,6 +77,7 @@ fun OnlineGameScreen(
     onSaveRecord: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    TrackScreenTime("stat_min_online")
     Box(modifier = modifier.background(AppBackground)) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             if (maxWidth >= 600.dp) {

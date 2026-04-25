@@ -38,7 +38,8 @@ data class BotEditUiState(
     val canRedo: Boolean = false,
     val showInfoModal: Boolean = false,
     val showDeleteConfirm: Boolean = false,
-    val shouldNavigateBack: Boolean = false
+    val shouldNavigateBack: Boolean = false,
+    val currentTurn: String = "w"
 )
 
 class BotEditViewModel(
@@ -84,6 +85,11 @@ class BotEditViewModel(
         }
         runStack.clear()
         _state.value = s.copy(editBoard = newBoard, runStackSize = 0)
+    }
+
+    fun toggleTurn() {
+        if (_state.value.isRunning) return
+        _state.value = _state.value.copy(currentTurn = if (_state.value.currentTurn == "w") "b" else "w")
     }
 
     fun clearBoard() {
@@ -211,13 +217,16 @@ class BotEditViewModel(
         val board = s.editBoard
         val code = s.codeText.text
 
+        val turn = s.currentTurn
         val whiteCount = board.flatten().count { it == CellState.WHITE }
         val blackCount = board.flatten().count { it == CellState.BLACK }
-        if (kotlin.math.abs(whiteCount - blackCount) > 1) return
+        val validTurn = if (turn == "w") blackCount - whiteCount in 0..1
+                        else whiteCount - blackCount in 0..1
+        if (!validTurn) return
 
         val whiteSide = (8 - whiteCount).coerceIn(0, 8)
         val blackSide = (8 - blackCount).coerceIn(0, 8)
-        val stateStr = encodeBoard(board, whiteSide, blackSide)
+        val stateStr = encodeBoard(board, whiteSide, blackSide, turn)
 
         runStack.addLast(board)
         runJob?.cancel()
@@ -227,7 +236,7 @@ class BotEditViewModel(
                 board = board,
                 whiteSideCount = whiteSide,
                 blackSideCount = blackSide,
-                currentPlayer = Player.WHITE,
+                currentPlayer = if (turn == "w") Player.WHITE else Player.BLACK,
                 phase = GamePhase.OPTIONAL_MOVE,
                 isBotThinking = true
             )
@@ -261,7 +270,7 @@ class BotEditViewModel(
                 return@launch
             }
 
-            animateBotMove(board, botMove!!, whiteSide)
+            animateBotMove(board, botMove!!, whiteSide, blackSide, turn == "w")
         }
     }
 
@@ -273,12 +282,13 @@ class BotEditViewModel(
         rotationDeferred?.complete(Unit)
     }
 
-    private suspend fun animateBotMove(initBoard: List<List<CellState>>, move: BotMove, initWhiteSide: Int) {
-        val opponentColor = CellState.BLACK
-        val ownColor = CellState.WHITE
+    private suspend fun animateBotMove(initBoard: List<List<CellState>>, move: BotMove, initWhiteSide: Int, initBlackSide: Int, isWhiteTurn: Boolean) {
+        val ownColor = if (isWhiteTurn) CellState.WHITE else CellState.BLACK
+        val opponentColor = if (isWhiteTurn) CellState.BLACK else CellState.WHITE
         var board = initBoard
 
-        fun cur() = _state.value.displayBoardState ?: GameState(board = board, currentPlayer = Player.WHITE, phase = GamePhase.OPTIONAL_MOVE)
+        val initPlayer = if (isWhiteTurn) Player.WHITE else Player.BLACK
+        fun cur() = _state.value.displayBoardState ?: GameState(board = board, currentPlayer = initPlayer, phase = GamePhase.OPTIONAL_MOVE)
         fun update(d: GameState) { _state.value = _state.value.copy(displayBoardState = d) }
 
         update(cur().copy(isBotThinking = false))
@@ -326,7 +336,8 @@ class BotEditViewModel(
         update(cur().copy(
             board = rotated,
             boardBeforeRotation = boardWithBall,
-            whiteSideCount = (initWhiteSide - 1).coerceAtLeast(0),
+            whiteSideCount = if (isWhiteTurn) (initWhiteSide - 1).coerceAtLeast(0) else initWhiteSide,
+            blackSideCount = if (!isWhiteTurn) (initBlackSide - 1).coerceAtLeast(0) else initBlackSide,
             isRotating = true,
             rotationVersion = ver,
             botHighlightCell = null
@@ -349,11 +360,11 @@ class BotEditViewModel(
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun encodeBoard(board: List<List<CellState>>, whiteSide: Int, blackSide: Int): String {
+    private fun encodeBoard(board: List<List<CellState>>, whiteSide: Int, blackSide: Int, turn: String): String {
         val cells = board.flatten().joinToString(",") {
             when (it) { CellState.WHITE -> "w"; CellState.BLACK -> "b"; else -> "" }
         }
-        return "[$cells]/$whiteSide/$blackSide/w"
+        return "[$cells]/$whiteSide/$blackSide/$turn"
     }
 
     private fun parseBotResponse(response: String): BotMove? {

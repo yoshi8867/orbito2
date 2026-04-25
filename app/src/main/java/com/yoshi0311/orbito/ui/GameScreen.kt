@@ -68,6 +68,7 @@ fun GameScreen(
     modifier: Modifier = Modifier,
     viewModel: GameViewModel = viewModel(key = "game_$sessionKey", factory = GameViewModel.factory(config))
 ) {
+    TrackScreenTime("stat_min_game")
     val state by viewModel.state.collectAsStateWithLifecycle()
     var logVisible by remember { mutableStateOf(false) }
     var settingsOpen by remember { mutableStateOf(false) }

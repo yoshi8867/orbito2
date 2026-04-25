@@ -54,6 +54,7 @@ fun BatchScreen(
     modifier: Modifier = Modifier,
     viewModel: BatchViewModel = viewModel(key = "batch_$sessionKey", factory = BatchViewModel.factory(config))
 ) {
+    TrackScreenTime("stat_min_batch")
     val state by viewModel.state.collectAsStateWithLifecycle()
     var whiteBot by remember { mutableStateOf(config.whiteBot ?: AVAILABLE_BOTS.first()) }
     var blackBot by remember { mutableStateOf(config.blackBot ?: AVAILABLE_BOTS.first()) }

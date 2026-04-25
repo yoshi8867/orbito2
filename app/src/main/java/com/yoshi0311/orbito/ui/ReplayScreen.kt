@@ -57,6 +57,7 @@ fun ReplayScreen(
     modifier: Modifier = Modifier,
     viewModel: ReplayViewModel = viewModel(key = "replay_$sessionKey")
 ) {
+    TrackScreenTime("stat_min_replay")
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current

@@ -64,6 +64,7 @@ fun BotEditScreen(
         factory = BotEditViewModel.factory(initialBotName)
     )
 ) {
+    TrackScreenTime("stat_min_bot_edit")
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -83,13 +84,16 @@ fun BotEditScreen(
     val blackBoardCount = state.editBoard.flatten().count { it == CellState.BLACK }
     val whiteSideCount = (8 - whiteBoardCount).coerceIn(0, 8)
     val blackSideCount = (8 - blackBoardCount).coerceIn(0, 8)
-    val isRunValid = !state.isRunning && kotlin.math.abs(whiteBoardCount - blackBoardCount) <= 1
+    val isRunValid = !state.isRunning && run {
+        if (state.currentTurn == "w") blackBoardCount - whiteBoardCount in 0..1
+        else whiteBoardCount - blackBoardCount in 0..1
+    }
 
     fun buildStateString(): String {
         val cells = state.editBoard.flatten().joinToString(",") {
             when (it) { CellState.WHITE -> "w"; CellState.BLACK -> "b"; else -> "" }
         }
-        return "\"[$cells]/$whiteSideCount/$blackSideCount/w\""
+        return "\"[$cells]/$whiteSideCount/$blackSideCount/${state.currentTurn}\""
     }
 
     Box(modifier = modifier.fillMaxSize().background(AppBackground)) {
@@ -121,11 +125,13 @@ fun BotEditScreen(
                             isTablet = true,
                             isRunValid = isRunValid,
                             stateString = buildStateString(),
+                            currentTurn = state.currentTurn,
                             onCellTap = viewModel::cycleCellState,
                             onRotationComplete = viewModel::onRotationComplete,
                             onRun = viewModel::runBot,
                             onBack = viewModel::backRun,
-                            onClear = viewModel::clearBoard
+                            onClear = viewModel::clearBoard,
+                            onToggleTurn = viewModel::toggleTurn
                         )
                     }
                     // Right: editor
@@ -174,11 +180,13 @@ fun BotEditScreen(
                             isTablet = false,
                             isRunValid = isRunValid,
                             stateString = buildStateString(),
+                            currentTurn = state.currentTurn,
                             onCellTap = viewModel::cycleCellState,
                             onRotationComplete = viewModel::onRotationComplete,
                             onRun = viewModel::runBot,
                             onBack = viewModel::backRun,
-                            onClear = viewModel::clearBoard
+                            onClear = viewModel::clearBoard,
+                            onToggleTurn = viewModel::toggleTurn
                         )
                     }
                 }
@@ -222,11 +230,13 @@ private fun BoardSection(
     isTablet: Boolean,
     isRunValid: Boolean,
     stateString: String,
+    currentTurn: String,
     onCellTap: (Int, Int) -> Unit,
     onRotationComplete: () -> Unit,
     onRun: () -> Unit,
     onBack: () -> Unit,
-    onClear: () -> Unit
+    onClear: () -> Unit,
+    onToggleTurn: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -278,6 +288,11 @@ private fun BoardSection(
                 text = "CLEAR",
                 enabled = !state.isRunning,
                 onClick = onClear
+            )
+            BoardActionButton(
+                text = if (currentTurn == "w") "WHITE" else "BLACK",
+                enabled = !state.isRunning,
+                onClick = onToggleTurn
             )
         }
     }
