@@ -124,7 +124,10 @@ app.get('/dashboard', async (req, res) => {
             replay:    parseInt(r.replay)  || 0,
             wins:      parseInt(r.wins)    || 0,
             losses:    parseInt(r.losses)  || 0,
-        })));
+        })).map(r => {
+            const games = r.wins + r.losses;
+            return { ...r, games, winrate: games > 0 ? Math.floor(r.wins / games * 100) : 0 };
+        }));
 
         res.send(`<!DOCTYPE html>
 <html lang="ko">
@@ -177,6 +180,8 @@ app.get('/dashboard', async (req, res) => {
       <th class="sortable" data-col="game">Game</th>
       <th class="sortable" data-col="online">Online</th>
       <th class="sortable" data-col="replay">Replay</th>
+      <th class="sortable" data-col="games">게임 횟수</th>
+      <th class="sortable" data-col="winrate">승률</th>
       <th class="sortable" data-col="wins">승</th>
       <th class="sortable" data-col="losses">패</th>
       <th class="sortable" data-col="device_id" data-type="str">기기 ID</th>
@@ -207,6 +212,8 @@ app.get('/dashboard', async (req, res) => {
       '<td>' + hm(r.game)   + '</td>' +
       '<td>' + hm(r.online) + '</td>' +
       '<td>' + hm(r.replay) + '</td>' +
+      '<td>' + r.games      + '</td>' +
+      '<td>' + (r.games > 0 ? r.winrate + '%' : '—') + '</td>' +
       '<td>' + r.wins      + '</td>' +
       '<td>' + r.losses    + '</td>' +
       '<td>' + r.device_id + '</td>' +
