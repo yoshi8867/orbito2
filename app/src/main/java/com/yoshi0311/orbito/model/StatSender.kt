@@ -36,9 +36,11 @@ object StatSender {
         if (snapshot == prefs.getString(KEY_LAST_SEND, null)) return
 
         val deviceId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+        val nickname = prefs.getString("stat_nickname", null)
         val payload = JSONObject().apply {
             put("deviceId", deviceId)
             put("account",  android.os.Build.MODEL)
+            put("nickname", nickname)
             put("edit",     edit)
             put("batch",    batch)
             put("game",     game)

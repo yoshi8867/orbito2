@@ -11,21 +11,22 @@ const pool = new Pool({
 });
 
 app.post('/api/stats', async (req, res) => {
-    const { deviceId, account, edit = 0, batch = 0, game = 0, online = 0, replay = 0 } = req.body;
+    const { deviceId, account, nickname, edit = 0, batch = 0, game = 0, online = 0, replay = 0 } = req.body;
     if (!deviceId) return res.status(400).json({ error: 'deviceId required' });
 
     try {
         await pool.query(
-            `INSERT INTO usage_stats (device_id, account, edit, batch, game, online, replay)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `INSERT INTO usage_stats (device_id, account, nickname, edit, batch, game, online, replay)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
              ON CONFLICT (device_id) DO UPDATE SET
-                 account = EXCLUDED.account,
-                 edit    = EXCLUDED.edit,
-                 batch   = EXCLUDED.batch,
-                 game    = EXCLUDED.game,
-                 online  = EXCLUDED.online,
-                 replay  = EXCLUDED.replay`,
-            [deviceId, account ?? null, edit, batch, game, online, replay]
+                 account  = EXCLUDED.account,
+                 nickname = EXCLUDED.nickname,
+                 edit     = EXCLUDED.edit,
+                 batch    = EXCLUDED.batch,
+                 game     = EXCLUDED.game,
+                 online   = EXCLUDED.online,
+                 replay   = EXCLUDED.replay`,
+            [deviceId, account ?? null, nickname ?? null, edit, batch, game, online, replay]
         );
         res.json({ ok: true });
     } catch (err) {
@@ -238,4 +239,6 @@ app.get('/dashboard', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`orbit-server running on :${PORT}`));
+pool.query(`ALTER TABLE usage_stats ADD COLUMN IF NOT EXISTS nickname TEXT`)
+    .catch(err => console.error('migration error:', err))
+    .finally(() => app.listen(PORT, () => console.log(`orbit-server running on :${PORT}`)));

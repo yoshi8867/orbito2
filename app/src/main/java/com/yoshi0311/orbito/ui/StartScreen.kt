@@ -14,14 +14,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -41,6 +48,52 @@ fun StartScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("orbito_prefs", Context.MODE_PRIVATE) }
+    var nickname by remember { mutableStateOf(prefs.getString("stat_nickname", "") ?: "") }
+    var showNicknameDialog by remember { mutableStateOf(false) }
+    var nicknameInput by remember { mutableStateOf("") }
+
+    if (showNicknameDialog) {
+        AlertDialog(
+            onDismissRequest = { showNicknameDialog = false },
+            containerColor = Color(0xFF1e1e1e),
+            title = { Text("닉네임 설정", color = Color.White, fontSize = 14.sp, letterSpacing = 2.sp) },
+            text = {
+                TextField(
+                    value = nicknameInput,
+                    onValueChange = { nicknameInput = it },
+                    singleLine = true,
+                    placeholder = { Text("닉네임 입력", color = Color.Gray, fontSize = 13.sp) },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor   = Color(0xFF2a2a2a),
+                        unfocusedContainerColor = Color(0xFF2a2a2a),
+                        focusedTextColor        = Color.White,
+                        unfocusedTextColor      = Color.White,
+                        cursorColor             = Color.White,
+                        focusedIndicatorColor   = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val trimmed = nicknameInput.trim()
+                    if (trimmed.isNotEmpty()) {
+                        prefs.edit().putString("stat_nickname", trimmed).apply()
+                        nickname = trimmed
+                    }
+                    showNicknameDialog = false
+                }) { Text("확인", color = Color.White) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNicknameDialog = false }) {
+                    Text("취소", color = Color.Gray)
+                }
+            }
+        )
+    }
+
     val isWifiConnected by produceState(initialValue = false, context) {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         fun check(): Boolean {
@@ -107,6 +160,20 @@ fun StartScreen(
             Spacer(Modifier.height(12.dp))
 
             StartMenuButton(text = "REPLAY", onClick = onReplay)
+
+            Spacer(Modifier.height(36.dp))
+
+            TextButton(onClick = {
+                nicknameInput = nickname
+                showNicknameDialog = true
+            }) {
+                Text(
+                    text = if (nickname.isNotEmpty()) nickname else "닉네임 없음",
+                    color = Color.White.copy(alpha = 0.35f),
+                    fontSize = 11.sp,
+                    letterSpacing = 2.sp
+                )
+            }
         }
     }
 }
