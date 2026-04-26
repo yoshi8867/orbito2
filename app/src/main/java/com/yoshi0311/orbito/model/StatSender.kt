@@ -25,12 +25,14 @@ object StatSender {
         // 24시간 미만이면 전송 안 함
         if (System.currentTimeMillis() - prefs.getLong(KEY_LAST_SEND_TS, 0L) < INTERVAL_MS) return
 
-        val edit   = prefs.getInt("stat_min_bot_edit", 0)
-        val batch  = prefs.getInt("stat_min_batch",    0)
-        val game   = prefs.getInt("stat_min_game",     0)
-        val online = prefs.getInt("stat_min_online",   0)
-        val replay = prefs.getInt("stat_min_replay",   0)
-        val snapshot = "$edit/$batch/$game/$online/$replay"
+        val edit   = prefs.getInt("stat_min_bot_edit",   0)
+        val batch  = prefs.getInt("stat_min_batch",      0)
+        val game   = prefs.getInt("stat_min_game",       0)
+        val online = prefs.getInt("stat_min_online",     0)
+        val replay = prefs.getInt("stat_min_replay",     0)
+        val wins   = prefs.getInt("stat_online_wins",    0)
+        val losses = prefs.getInt("stat_online_losses",  0)
+        val snapshot = "$edit/$batch/$game/$online/$replay/$wins/$losses"
 
         // 값이 변하지 않았으면 전송 안 함
         if (snapshot == prefs.getString(KEY_LAST_SEND, null)) return
@@ -46,6 +48,8 @@ object StatSender {
             put("game",     game)
             put("online",   online)
             put("replay",   replay)
+            put("wins",     wins)
+            put("losses",   losses)
         }.toString()
 
         // 최대 3회 전송 (1, 2번째는 성공 확인, 3번째는 확인 없이 종료)

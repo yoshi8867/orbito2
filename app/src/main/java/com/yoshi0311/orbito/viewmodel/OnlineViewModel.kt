@@ -51,6 +51,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
     private var pendingOptSrc: Int? = null
     private var pendingOptDst: Int? = null
     private val moves = mutableListOf<String>()
+    private var winLossRecorded = false
 
     private val prefs by lazy {
         getApplication<Application>().getSharedPreferences("orbito_prefs", android.content.Context.MODE_PRIVATE)
@@ -204,6 +205,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
         _state.value = OnlineState()
         pendingOptSrc = null; pendingOptDst = null
         moves.clear()
+        winLossRecorded = false
     }
 
     fun generateRecord(): String {
@@ -311,7 +313,22 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
         _state.value = _state.value.copy(isRotating = false, boardBeforeRotation = null)
         if (_state.value.game.winner != null) {
             prefs.edit().putString("last_game_record", generateRecord()).apply()
+            recordWinLoss()
         }
+    }
+
+    private fun recordWinLoss() {
+        if (winLossRecorded) return
+        val s = _state.value
+        val winner = s.game.winner ?: return
+        val iWon = (s.myRole == OnlineRole.WHITE && winner == Player.WHITE) ||
+                   (s.myRole == OnlineRole.BLACK && winner == Player.BLACK)
+        val iLost = (s.myRole == OnlineRole.WHITE && winner == Player.BLACK) ||
+                    (s.myRole == OnlineRole.BLACK && winner == Player.WHITE)
+        if (!iWon && !iLost) return
+        val key = if (iWon) "stat_online_wins" else "stat_online_losses"
+        prefs.edit().putInt(key, prefs.getInt(key, 0) + 1).apply()
+        winLossRecorded = true
     }
 
     private fun deRotate(b: List<List<CellState>>): List<List<CellState>> {

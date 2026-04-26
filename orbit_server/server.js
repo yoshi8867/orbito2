@@ -11,13 +11,13 @@ const pool = new Pool({
 });
 
 app.post('/api/stats', async (req, res) => {
-    const { deviceId, account, nickname, edit = 0, batch = 0, game = 0, online = 0, replay = 0 } = req.body;
+    const { deviceId, account, nickname, edit = 0, batch = 0, game = 0, online = 0, replay = 0, wins = 0, losses = 0 } = req.body;
     if (!deviceId) return res.status(400).json({ error: 'deviceId required' });
 
     try {
         await pool.query(
-            `INSERT INTO usage_stats (device_id, account, nickname, edit, batch, game, online, replay)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `INSERT INTO usage_stats (device_id, account, nickname, edit, batch, game, online, replay, wins, losses)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
              ON CONFLICT (device_id) DO UPDATE SET
                  account  = EXCLUDED.account,
                  nickname = EXCLUDED.nickname,
@@ -25,8 +25,10 @@ app.post('/api/stats', async (req, res) => {
                  batch    = EXCLUDED.batch,
                  game     = EXCLUDED.game,
                  online   = EXCLUDED.online,
-                 replay   = EXCLUDED.replay`,
-            [deviceId, account ?? null, nickname ?? null, edit, batch, game, online, replay]
+                 replay   = EXCLUDED.replay,
+                 wins     = EXCLUDED.wins,
+                 losses   = EXCLUDED.losses`,
+            [deviceId, account ?? null, nickname ?? null, edit, batch, game, online, replay, wins, losses]
         );
         res.json({ ok: true });
     } catch (err) {
@@ -65,7 +67,7 @@ app.get('/dashboard', async (req, res) => {
             ),
             pool.query(
                 `SELECT device_id, account, nickname,
-                        edit, batch, game, online, replay,
+                        edit, batch, game, online, replay, wins, losses,
                         (edit + batch + game + online + replay) AS total
                  FROM usage_stats
                  ORDER BY total DESC`
@@ -114,12 +116,14 @@ app.get('/dashboard', async (req, res) => {
             nickname:  r.nickname  || '—',
             account:   r.account   || '—',
             device_id: r.device_id || '—',
-            total:     parseInt(r.total)  || 0,
-            edit:      parseInt(r.edit)   || 0,
-            batch:     parseInt(r.batch)  || 0,
-            game:      parseInt(r.game)   || 0,
-            online:    parseInt(r.online) || 0,
-            replay:    parseInt(r.replay) || 0,
+            total:     parseInt(r.total)   || 0,
+            edit:      parseInt(r.edit)    || 0,
+            batch:     parseInt(r.batch)   || 0,
+            game:      parseInt(r.game)    || 0,
+            online:    parseInt(r.online)  || 0,
+            replay:    parseInt(r.replay)  || 0,
+            wins:      parseInt(r.wins)    || 0,
+            losses:    parseInt(r.losses)  || 0,
         })));
 
         res.send(`<!DOCTYPE html>
@@ -173,6 +177,8 @@ app.get('/dashboard', async (req, res) => {
       <th class="sortable" data-col="game">Game</th>
       <th class="sortable" data-col="online">Online</th>
       <th class="sortable" data-col="replay">Replay</th>
+      <th class="sortable" data-col="wins">승</th>
+      <th class="sortable" data-col="losses">패</th>
       <th class="sortable" data-col="device_id" data-type="str">기기 ID</th>
       <th class="sortable" data-col="account" data-type="str">Account</th>
     </tr>
@@ -201,6 +207,8 @@ app.get('/dashboard', async (req, res) => {
       '<td>' + hm(r.game)   + '</td>' +
       '<td>' + hm(r.online) + '</td>' +
       '<td>' + hm(r.replay) + '</td>' +
+      '<td>' + r.wins      + '</td>' +
+      '<td>' + r.losses    + '</td>' +
       '<td>' + r.device_id + '</td>' +
       '<td>' + r.account   + '</td>' +
       '</tr>'
@@ -240,5 +248,7 @@ app.get('/dashboard', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 pool.query(`ALTER TABLE usage_stats ADD COLUMN IF NOT EXISTS nickname TEXT`)
+    .then(() => pool.query(`ALTER TABLE usage_stats ADD COLUMN IF NOT EXISTS wins INTEGER NOT NULL DEFAULT 0`))
+    .then(() => pool.query(`ALTER TABLE usage_stats ADD COLUMN IF NOT EXISTS losses INTEGER NOT NULL DEFAULT 0`))
     .catch(err => console.error('migration error:', err))
     .finally(() => app.listen(PORT, () => console.log(`orbit-server running on :${PORT}`)));

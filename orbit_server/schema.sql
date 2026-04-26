@@ -8,5 +8,7 @@ CREATE TABLE IF NOT EXISTS usage_stats (
     batch     INTEGER NOT NULL DEFAULT 0,
     game      INTEGER NOT NULL DEFAULT 0,
     online    INTEGER NOT NULL DEFAULT 0,
-    replay    INTEGER NOT NULL DEFAULT 0
+    replay    INTEGER NOT NULL DEFAULT 0,
+    wins      INTEGER NOT NULL DEFAULT 0,
+    losses    INTEGER NOT NULL DEFAULT 0
 );
