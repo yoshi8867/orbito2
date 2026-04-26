@@ -14,21 +14,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,6 +42,8 @@ fun StartScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+
+    /*
     val prefs = remember { context.getSharedPreferences("orbito_prefs", Context.MODE_PRIVATE) }
     var nickname by remember { mutableStateOf(prefs.getString("stat_nickname", "") ?: "") }
     var showNicknameDialog by remember { mutableStateOf(false) }
@@ -93,6 +89,7 @@ fun StartScreen(
             }
         )
     }
+    */
 
     val isWifiConnected by produceState(initialValue = false, context) {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -161,6 +158,7 @@ fun StartScreen(
 
             StartMenuButton(text = "REPLAY", onClick = onReplay)
 
+            /*
             Spacer(Modifier.height(36.dp))
 
             TextButton(onClick = {
@@ -174,6 +172,7 @@ fun StartScreen(
                     letterSpacing = 2.sp
                 )
             }
+            */
         }
     }
 }

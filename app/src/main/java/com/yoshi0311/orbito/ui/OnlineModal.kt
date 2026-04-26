@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,7 +55,15 @@ fun OnlineModal(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var nickname by remember { mutableStateOf(state.myNickname) }
+
+    LaunchedEffect(nickname) {
+        if (nickname.isNotBlank()) {
+            context.getSharedPreferences("orbito_prefs", Context.MODE_PRIVATE)
+                .edit().putString("stat_nickname", nickname).apply()
+        }
+    }
 
     LaunchedEffect(Unit) {
         while (true) {
