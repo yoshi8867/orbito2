@@ -110,7 +110,7 @@ fun BotEditScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .weight(0.42f)
+                            .weight(0.62f)
                             .padding(horizontal = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
@@ -144,7 +144,7 @@ fun BotEditScreen(
                         onUndo = viewModel::undoCode,
                         onRedo = viewModel::redoCode,
                         onDelete = viewModel::showDeleteConfirm,
-                        modifier = Modifier.fillMaxHeight().weight(0.58f)
+                        modifier = Modifier.fillMaxHeight().weight(0.38f)
                     )
                 }
             } else {
@@ -159,13 +159,13 @@ fun BotEditScreen(
                         onUndo = viewModel::undoCode,
                         onRedo = viewModel::redoCode,
                         onDelete = viewModel::showDeleteConfirm,
-                        modifier = Modifier.fillMaxWidth().weight(0.5f)
+                        modifier = Modifier.fillMaxWidth().weight(0.33f)
                     )
                     // Bottom: board
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(0.5f)
+                            .weight(0.67f)
                             .padding(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center

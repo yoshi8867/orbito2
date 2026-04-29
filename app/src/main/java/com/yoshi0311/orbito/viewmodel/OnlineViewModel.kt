@@ -50,6 +50,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
     // Pending optional move (not yet committed to server)
     private var pendingOptSrc: Int? = null
     private var pendingOptDst: Int? = null
+    private var pendingOptMoveForRecord: Pair<Int, Int>? = null
     private val moves = mutableListOf<String>()
     private var winLossRecorded = false
 
@@ -177,6 +178,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun commitMove(optSrc: Int?, optDst: Int?, placePos: Int) {
         val s = _state.value
+        pendingOptMoveForRecord = if (optSrc != null && optDst != null) Pair(optSrc, optDst) else null
         pendingOptSrc = null; pendingOptDst = null
         _state.value = s.copy(selectedCell = null, localPhase = null)
         if (s.isHost) {
@@ -203,7 +205,7 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
         nsd = null; server = null; client = null
         releaseMulticastLock()
         _state.value = OnlineState()
-        pendingOptSrc = null; pendingOptDst = null
+        pendingOptSrc = null; pendingOptDst = null; pendingOptMoveForRecord = null
         moves.clear()
         winLossRecorded = false
     }
@@ -343,16 +345,30 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
     ): Pair<Int, Int>? {
         val disappeared = mutableListOf<Int>()
         val appeared = mutableListOf<Int>()
+        var changedSrc: Int? = null
         for (r in 0..3) for (c in 0..3) {
             val prev = prevBoard[r][c]; val curr = boardAfterPlace[r][c]
-            if (prev != CellState.EMPTY && curr == CellState.EMPTY) disappeared.add(r * 4 + c)
-            else if (prev == CellState.EMPTY && curr != CellState.EMPTY) appeared.add(r * 4 + c)
+            when {
+                prev != CellState.EMPTY && curr == CellState.EMPTY -> disappeared.add(r * 4 + c)
+                prev == CellState.EMPTY && curr != CellState.EMPTY -> appeared.add(r * 4 + c)
+                prev != CellState.EMPTY && curr != CellState.EMPTY && prev != curr -> changedSrc = r * 4 + c
+            }
         }
-        if (disappeared.size != 1 || appeared.size != 2) return null
-        val srcPos = disappeared[0]
-        val movedColor = prevBoard[srcPos / 4][srcPos % 4]
-        val dstPos = appeared.firstOrNull { boardAfterPlace[it / 4][it % 4] == movedColor } ?: return null
-        return Pair(srcPos, dstPos)
+        // 일반 케이스: opt 출발지가 비워지고, opt 도착지 + 배치 위치가 나타남
+        if (disappeared.size == 1 && appeared.size == 2) {
+            val srcPos = disappeared[0]
+            val movedColor = prevBoard[srcPos / 4][srcPos % 4]
+            val dstPos = appeared.firstOrNull { boardAfterPlace[it / 4][it % 4] == movedColor } ?: return null
+            return Pair(srcPos, dstPos)
+        }
+        // 특수 케이스: opt 출발지 == 배치 위치 (해당 칸의 돌이 빈칸 없이 색상만 교체됨)
+        if (disappeared.size == 0 && appeared.size == 1 && changedSrc != null) {
+            val srcPos = changedSrc
+            val movedColor = prevBoard[srcPos / 4][srcPos % 4]
+            val dstPos = appeared.firstOrNull { boardAfterPlace[it / 4][it % 4] == movedColor } ?: return null
+            return Pair(srcPos, dstPos)
+        }
+        return null
     }
 
     private fun applyGameMsg(msg: NetMsg) {
@@ -392,7 +408,11 @@ class OnlineViewModel(application: Application) : AndroidViewModel(application) 
         }
         if (placePos != null) {
             val prefix = if (prevGame.currentPlayer == Player.WHITE) "w" else "b"
-            val moveStr = if (optMove != null) "${optMove.first}>${optMove.second}/$placePos" else "$placePos"
+            val isMyMove = (prevGame.currentPlayer == Player.WHITE && _state.value.myRole == OnlineRole.WHITE) ||
+                           (prevGame.currentPlayer == Player.BLACK && _state.value.myRole == OnlineRole.BLACK)
+            val effectiveOptMove = if (isMyMove) pendingOptMoveForRecord else optMove
+            pendingOptMoveForRecord = null
+            val moveStr = if (effectiveOptMove != null) "${effectiveOptMove.first}>${effectiveOptMove.second}/$placePos" else "$placePos"
             moves.add("$prefix: $moveStr")
         }
 

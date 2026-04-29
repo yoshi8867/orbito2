@@ -108,7 +108,7 @@ fun ReplayScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .weight(0.42f)
+                            .weight(0.62f)
                             .padding(horizontal = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
@@ -129,7 +129,7 @@ fun ReplayScreen(
                         onSaveRecord = onSaveRecord,
                         onLoadRecord = onLoadRecord,
                         onCopy = onCopy,
-                        modifier = Modifier.fillMaxHeight().weight(0.58f)
+                        modifier = Modifier.fillMaxHeight().weight(0.38f)
                     )
                 }
             } else {
@@ -141,12 +141,12 @@ fun ReplayScreen(
                         onSaveRecord = onSaveRecord,
                         onLoadRecord = onLoadRecord,
                         onCopy = onCopy,
-                        modifier = Modifier.fillMaxWidth().weight(0.5f)
+                        modifier = Modifier.fillMaxWidth().weight(0.33f)
                     )
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(0.5f)
+                            .weight(0.67f)
                             .padding(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
